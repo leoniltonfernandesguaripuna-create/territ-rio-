@@ -6,10 +6,9 @@ workflows:
     
     environment:
       flutter: stable
-      java: 21  # Obrigatório: O ambiente do Codemagic está usando Java 21
+      java: 21  # Obrigatório: O Codemagic usa Java 21 por padrão
       groups:
-        - google_credentials # Contém a variável GOOGLE_SERVICES_JSON
-        # - keystore_credentials # Descomente se precisar de assinatura de release
+        - google_credentials # Certifique-se de ter criado este grupo com a variável GOOGLE_SERVICES_JSON
       
     cache:
       cache_paths:
@@ -34,18 +33,23 @@ workflows:
         script: |
           flutter pub get
 
-      - name: Atualizar Gradle Wrapper para 8.7 (Correção definitiva)
+      - name: Forçar Gradle 8.7 no wrapper (Correção do erro)
         script: |
-          # Este comando altera o arquivo de configuração do Gradle para a versão 8.7
-          # que é compatível com o Java 21
-          sed -i '' 's|distributionUrl=.*|distributionUrl=https\\://services.gradle.org/distributions/gradle-8.7-all.zip|' $CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties
+          # Sobrescreve o arquivo do wrapper com a versão 8.7 para compatibilidade com Java 21
+          echo "distributionBase=GRADLE_USER_HOME" > "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
+          echo "distributionPath=wrapper/dists" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
+          echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.7-all.zip" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
+          echo "networkTimeout=10000" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
+          echo "validateDistributionUrl=true" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
+          echo "zipStoreBase=GRADLE_USER_HOME" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
+          echo "zipStorePath=wrapper/dists" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
           echo "--- Conteúdo atualizado do gradle-wrapper.properties ---"
-          cat $CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties
+          cat "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
 
       - name: Criar google-services.json
         script: |
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
-            echo $GOOGLE_SERVICES_JSON > $CM_BUILD_DIR/android/app/google-services.json
+            echo $GOOGLE_SERVICES_JSON > "$CM_BUILD_DIR/android/app/google-services.json"
             echo "google-services.json criado com sucesso."
           else
             echo "Aviso: GOOGLE_SERVICES_JSON não está definido."
