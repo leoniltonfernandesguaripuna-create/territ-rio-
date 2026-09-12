@@ -1,10 +1,15 @@
-import 'package:flutter/material.dart';
+            
+    import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const ProviderScope(child: TerritorioApp()));
 }
+
+// ═══════════════════════════════════════════════════════════
+// STRINGS
+// ═══════════════════════════════════════════════════════════
 
 abstract final class AppStrings {
   static const String appName = 'Território de Congregação';
@@ -61,11 +66,47 @@ abstract final class AppStrings {
       '*Ao iniciar uma nova folha, use esta coluna para registrar a data em que cada território foi concluído pela última vez.';
   static const String s13Codigo = 'S-13-T  01/22';
   static const String s13AnoLabel = 'Ano';
+  static const String eventosTitulo = 'Eventos';
+  static const String eventoColN = 'Nº';
+  static const String eventoColNome = 'NOME';
+  static const String eventoColDias = 'DIAS';
+  static const String eventoColPg = 'PG';
+  static const String eventoInstrucao =
+      'Toque no NOME para editar · Toque SEX/SÁB/DOM para marcar o dia · Toque PG para indicar pagamento';
+  static const String adminTitulo = 'Administração';
+  static const String adminCriarPrincipal = 'Criar Administrador Principal';
+  static const String adminLogin = 'Entrar como Administrador';
+  static const String adminPainel = 'Painel do Administrador';
+  static const String adminNome = 'Nome';
+  static const String adminPin = 'PIN (4 dígitos)';
+  static const String adminCriar = 'Criar';
+  static const String adminEntrar = 'Entrar';
+  static const String adminSair = 'Sair';
+  static const String adminAdd = 'Adicionar administrador';
+  static const String adminLimite = 'Limite de 6 administradores auxiliares atingido';
+  static const String adminPrincipalLabel = 'Principal';
+  static const String adminAuxiliarLabel = 'Auxiliar';
+  static const String adminBemVindo = 'Bem-vindo(a)';
+  static const String adminInstrucaoPrincipal =
+      'Você é o Administrador Principal. Pode criar até 6 administradores auxiliares.';
+  static const String adminInstrucaoAuxiliar =
+      'Você é um Administrador Auxiliar. Somente o principal pode criar novos admins.';
+  static const String adminCriarSucesso = 'Administrador criado com sucesso!';
+  static const String adminPinInvalido = 'PIN inválido. Deve ter 4 dígitos.';
+  static const String adminNomeVazio = 'Digite o nome.';
+  static const String adminCredenciaisErradas = 'Nome ou PIN incorretos.';
+  static const String adminRemover = 'Remover';
+  static const String adminRemoverConfirm = 'Remover este administrador?';
 }
+
+// ═══════════════════════════════════════════════════════════
+// CORES
+// ═══════════════════════════════════════════════════════════
 
 abstract final class AppColors {
   static const Color azulMarinho = Color(0xFF1E3A5F);
   static const Color azulProfundo = Color(0xFF16293F);
+  static const Color azulClaro = Color(0xFF2E5A87);
   static const Color creme = Color(0xFFFAF6EC);
   static const Color cremeCard = Color(0xFFF5EFE0);
   static const Color cremeEscuro = Color(0xFFE8DFC9);
@@ -83,7 +124,14 @@ abstract final class AppColors {
   static const Color amareloPendente = Color(0xFFF9A825);
   static const Color preto = Color(0xFF000000);
   static const Color cinzaS13 = Color(0xFFE0E0E0);
+  static const Color eventoVerde = Color(0xFF2E7D32);
+  static const Color eventoAmarelo = Color(0xFFF9A825);
+  static const Color eventoRoxo = Color(0xFF6A4C93);
 }
+
+// ═══════════════════════════════════════════════════════════
+// TEMA
+// ═══════════════════════════════════════════════════════════
 
 abstract final class AppTheme {
   static ThemeData get claro {
@@ -114,6 +162,10 @@ abstract final class AppTheme {
   }
 }
 
+// ═══════════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════════
+
 abstract final class GradeConfig {
   static const int dirigenteLinhas = 11;
   static const int dirigenteColunas = 9;
@@ -137,6 +189,10 @@ abstract final class GradeConfig {
   static const int s13Territorios = 14;
   static const int s13CelulasPorTerritorio = 2;
   static const int s13Grupos = 4;
+  static const int eventoGrupos = 5;
+  static const int eventoLinhas = 14;
+  static const int eventoTotalSlots = 70;
+  static const int maxAdminsAuxiliares = 6;
 }
 
 abstract final class EstadoQuadra {
@@ -157,6 +213,10 @@ abstract final class EstadoQuadra {
     return null;
   }
 }
+
+// ═══════════════════════════════════════════════════════════
+// MODELOS
+// ═══════════════════════════════════════════════════════════
 
 enum StatusTerritorio {
   livre('Livre', AppColors.verdeLivre),
@@ -193,9 +253,7 @@ class Territorio {
   final List<List<String>> gradeDirigente;
   final List<List<int>> gradeQuadras;
 
-  bool get temFotoMapa {
-    return fotoMapaUrl != null && fotoMapaUrl!.isNotEmpty;
-  }
+  bool get temFotoMapa => fotoMapaUrl != null && fotoMapaUrl!.isNotEmpty;
 
   Territorio copyWith({
     int? numero,
@@ -312,6 +370,66 @@ class RegistroS13 {
   }
 }
 
+class LinhaEvento {
+  const LinhaEvento({
+    this.nome = '',
+    this.dias = const <bool>[false, false, false],
+    this.pg = 0,
+  });
+  final String nome;
+  final List<bool> dias;
+  final int pg;
+
+  LinhaEvento copyWith({String? nome, List<bool>? dias, int? pg}) {
+    return LinhaEvento(
+      nome: nome ?? this.nome,
+      dias: dias ?? this.dias,
+      pg: pg ?? this.pg,
+    );
+  }
+}
+
+class Administrador {
+  const Administrador({
+    required this.id,
+    required this.nome,
+    required this.pin,
+    this.principal = false,
+  });
+  final String id;
+  final String nome;
+  final String pin;
+  final bool principal;
+
+  Administrador copyWith({
+    String? id,
+    String? nome,
+    String? pin,
+    bool? principal,
+  }) {
+    return Administrador(
+      id: id ?? this.id,
+      nome: nome ?? this.nome,
+      pin: pin ?? this.pin,
+      principal: principal ?? this.principal,
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════
+
+List<List<LinhaEvento>> novoEventoVazio() {
+  return List<List<LinhaEvento>>.generate(
+    GradeConfig.eventoGrupos,
+    (_) => List<LinhaEvento>.generate(
+      GradeConfig.eventoLinhas,
+      (_) => const LinhaEvento(),
+    ),
+  );
+}
+
 List<List<String>> novaGradeDirigente() {
   return List<List<String>>.generate(
     GradeConfig.dirigenteLinhas,
@@ -353,9 +471,7 @@ const List<String> nomesMeses = <String>[
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
 ];
 
-String nomeDiaSemana(int weekday) {
-  return nomesDiasSemana[weekday - 1];
-}
+String nomeDiaSemana(int weekday) => nomesDiasSemana[weekday - 1];
 
 String horarioPadrao(DateTime data) {
   final DateTime hoje = DateTime.now();
@@ -368,9 +484,7 @@ String horarioPadrao(DateTime data) {
   return '08:30';
 }
 
-String chaveMes(int ano, int mes) {
-  return '$ano-${mes.toString().padLeft(2, '0')}';
-}
+String chaveMes(int ano, int mes) => '$ano-${mes.toString().padLeft(2, '0')}';
 
 List<String> nomesColunaDirigente(List<List<String>> dirigentes, int coluna) {
   final List<String> out = <String>[];
@@ -439,6 +553,10 @@ List<List<String>> novaGradeDirigentes() {
   });
 }
 
+// ═══════════════════════════════════════════════════════════
+// DADOS INICIAIS
+// ═══════════════════════════════════════════════════════════
+
 final List<Territorio> territoriosIniciais = <Territorio>[
   Territorio(numero: 1, nome: 'Centro', status: StatusTerritorio.livre,
     fotoMapaUrl: 'https://placehold.co/800x600/1E3A5F/C9A961?text=Mapa+1',
@@ -475,11 +593,13 @@ final List<Territorio> territoriosIniciais = <Territorio>[
     gradeDirigente: novaGradeDirigente(), gradeQuadras: novaGradeQuadras()),
 ];
 
+// ═══════════════════════════════════════════════════════════
+// PROVIDERS
+// ═══════════════════════════════════════════════════════════
+
 class TerritoriosNotifier extends Notifier<List<Territorio>> {
   @override
-  List<Territorio> build() {
-    return List<Territorio>.of(territoriosIniciais);
-  }
+  List<Territorio> build() => List<Territorio>.of(territoriosIniciais);
 
   void renomear(int numero, String novoNome) {
     state = <Territorio>[
@@ -596,9 +716,7 @@ final territorioPorNumeroProvider = Provider.family<Territorio?, int>((ref, nume
 
 class DirigentesNotifier extends Notifier<List<List<String>>> {
   @override
-  List<List<String>> build() {
-    return novaGradeDirigentes();
-  }
+  List<List<String>> build() => novaGradeDirigentes();
 
   void atualizar(int linha, int coluna, String valor) {
     state = <List<String>>[
@@ -622,11 +740,153 @@ final dirigentesProvider = NotifierProvider<DirigentesNotifier, List<List<String
   DirigentesNotifier.new,
 );
 
+class EventosNotifier extends Notifier<List<List<LinhaEvento>>> {
+  @override
+  List<List<LinhaEvento>> build() => novoEventoVazio();
+
+  void atualizarNome(int grupo, int linha, String nome) {
+    state = <List<LinhaEvento>>[
+      for (int g = 0; g < state.length; g++)
+        if (g == grupo)
+          <LinhaEvento>[
+            for (int l = 0; l < state[g].length; l++)
+              if (l == linha) state[g][l].copyWith(nome: nome)
+              else state[g][l],
+          ]
+        else
+          state[g],
+    ];
+  }
+
+  void toggleDia(int grupo, int linha, int diaIdx) {
+    state = <List<LinhaEvento>>[
+      for (int g = 0; g < state.length; g++)
+        if (g == grupo)
+          <LinhaEvento>[
+            for (int l = 0; l < state[g].length; l++)
+              if (l == linha)
+                state[g][l].copyWith(
+                  dias: <bool>[
+                    for (int d = 0; d < 3; d++)
+                      if (d == diaIdx) !state[g][l].dias[d]
+                      else state[g][l].dias[d],
+                  ],
+                )
+              else
+                state[g][l],
+          ]
+        else
+          state[g],
+    ];
+  }
+
+  void ciclarPg(int grupo, int linha) {
+    state = <List<LinhaEvento>>[
+      for (int g = 0; g < state.length; g++)
+        if (g == grupo)
+          <LinhaEvento>[
+            for (int l = 0; l < state[g].length; l++)
+              if (l == linha)
+                state[g][l].copyWith(pg: (state[g][l].pg + 1) % 3)
+              else
+                state[g][l],
+          ]
+        else
+          state[g],
+    ];
+  }
+
+  void limparTudo() {
+    state = novoEventoVazio();
+  }
+}
+
+final eventosProvider = NotifierProvider<EventosNotifier, List<List<LinhaEvento>>>(
+  EventosNotifier.new,
+);
+
+class AdminsNotifier extends Notifier<List<Administrador>> {
+  int _contador = 0;
+
+  @override
+  List<Administrador> build() => <Administrador>[];
+
+  bool get temPrincipal => state.any((Administrador a) => a.principal);
+
+  int get totalAuxiliares =>
+      state.where((Administrador a) => !a.principal).length;
+
+  bool get podeCriarAuxiliar =>
+      temPrincipal && totalAuxiliares < GradeConfig.maxAdminsAuxiliares;
+
+  void criarPrincipal(String nome, String pin) {
+    if (temPrincipal) return;
+    _contador++;
+    state = <Administrador>[
+      ...state,
+      Administrador(
+        id: 'a$_contador',
+        nome: nome,
+        pin: pin,
+        principal: true,
+      ),
+    ];
+  }
+
+  void criarAuxiliar(String nome, String pin) {
+    if (!podeCriarAuxiliar) return;
+    _contador++;
+    state = <Administrador>[
+      ...state,
+      Administrador(
+        id: 'a$_contador',
+        nome: nome,
+        pin: pin,
+      ),
+    ];
+  }
+
+  void remover(String id) {
+    state = <Administrador>[
+      for (final Administrador a in state)
+        if (a.id == id && !a.principal) a else a,
+    ];
+  }
+
+  Administrador? autenticar(String nome, String pin) {
+    for (final Administrador a in state) {
+      if (a.nome.toLowerCase() == nome.toLowerCase().trim() && a.pin == pin) {
+        return a;
+      }
+    }
+    return null;
+  }
+}
+
+final adminsProvider = NotifierProvider<AdminsNotifier, List<Administrador>>(
+  AdminsNotifier.new,
+);
+
+class AdminLogadoNotifier extends Notifier<Administrador?> {
+  @override
+  Administrador? build() => null;
+
+  void entrar(Administrador a) {
+    state = a;
+  }
+
+  void sair() {
+    state = null;
+  }
+}
+
+final adminLogadoProvider = NotifierProvider<AdminLogadoNotifier, Administrador?>(
+  AdminLogadoNotifier.new,
+);
+
 class S13Notifier extends Notifier<RegistroS13> {
   @override
-  RegistroS13 build() {
-    return RegistroS13(territorios: novosBlocosS13());
-  }
+  RegistroS13 build() => RegistroS13(territorios: novosBlocosS13());
 
   void atualizarAno(String ano) {
     state = state.copyWith(anoServico: ano);
@@ -656,8 +916,6 @@ class S13Notifier extends Notifier<RegistroS13> {
     );
   }
 
-  /// Procura o bloco pelo número do território. Se não encontrar,
-  /// usa a posição (Território 1 → bloco 0, etc).
   int _encontrarIndex(int numeroTerritorio) {
     int idx = state.territorios.indexWhere((b) => b.numero == '$numeroTerritorio');
     if (idx != -1) return idx;
@@ -798,9 +1056,8 @@ class MesSelecionado {
   const MesSelecionado(this.ano, this.mes);
   final int ano;
   final int mes;
-  MesSelecionado copyWith({int? ano, int? mes}) {
-    return MesSelecionado(ano ?? this.ano, mes ?? this.mes);
-  }
+  MesSelecionado copyWith({int? ano, int? mes}) =>
+      MesSelecionado(ano ?? this.ano, mes ?? this.mes);
 }
 
 class MesSelecionadoNotifier extends Notifier<MesSelecionado> {
@@ -837,9 +1094,7 @@ final mesSelecionadoProvider = NotifierProvider<MesSelecionadoNotifier, MesSelec
 
 class ServicoCampoNotifier extends Notifier<Map<String, List<LinhaServicoCampo>>> {
   @override
-  Map<String, List<LinhaServicoCampo>> build() {
-    return <String, List<LinhaServicoCampo>>{};
-  }
+  Map<String, List<LinhaServicoCampo>> build() => <String, List<LinhaServicoCampo>>{};
 
   void garantirMes(int ano, int mes) {
     final String chave = chaveMes(ano, mes);
@@ -909,6 +1164,10 @@ final servicoCampoProvider =
     NotifierProvider<ServicoCampoNotifier, Map<String, List<LinhaServicoCampo>>>(
   ServicoCampoNotifier.new,
 );
+
+// ═══════════════════════════════════════════════════════════
+// DIALOG GENÉRICO
+// ═══════════════════════════════════════════════════════════
 
 Future<String?> abrirDialogEditarTexto({
   required BuildContext context,
@@ -1121,6 +1380,10 @@ Future<void> abrirDialogEditarDirigente(BuildContext context, WidgetRef ref, int
   }
 }
 
+// ═══════════════════════════════════════════════════════════
+// APP + HOME
+// ═══════════════════════════════════════════════════════════
+
 class TerritorioApp extends StatelessWidget {
   const TerritorioApp({super.key});
   @override
@@ -1246,6 +1509,10 @@ class ModuloCard extends StatelessWidget {
     );
   }
 }
+
+// ═══════════════════════════════════════════════════════════
+// TELA: TERRITÓRIOS
+// ═══════════════════════════════════════════════════════════
 
 class TerritoriosScreen extends ConsumerWidget {
   const TerritoriosScreen({super.key});
@@ -1422,6 +1689,10 @@ class _StatusBadge extends StatelessWidget {
     );
   }
 }
+
+// ═══════════════════════════════════════════════════════════
+// TELA: DETALHE DO TERRITÓRIO
+// ═══════════════════════════════════════════════════════════
 
 class TerritorioDetalheScreen extends ConsumerWidget {
   const TerritorioDetalheScreen({super.key, required this.numero});
@@ -1713,6 +1984,10 @@ class _InfoLinha extends StatelessWidget {
   }
 }
 
+// ═══════════════════════════════════════════════════════════
+// TELA: GRADES DO TERRITÓRIO
+// ═══════════════════════════════════════════════════════════
+
 class GradesTerritorioScreen extends ConsumerWidget {
   const GradesTerritorioScreen({super.key, required this.numero});
   final int numero;
@@ -1953,6 +2228,10 @@ class _CelulaQuadra extends StatelessWidget {
   }
 }
 
+// ═══════════════════════════════════════════════════════════
+// TELA: SERVIÇO DE CAMPO
+// ═══════════════════════════════════════════════════════════
+
 class ServicoCampoScreen extends ConsumerWidget {
   const ServicoCampoScreen({super.key});
 
@@ -2124,6 +2403,10 @@ class _CelulaServico extends StatelessWidget {
   }
 }
 
+// ═══════════════════════════════════════════════════════════
+// TELA: DIRIGENTE
+// ═══════════════════════════════════════════════════════════
+
 class DirigenteScreen extends ConsumerWidget {
   const DirigenteScreen({super.key});
 
@@ -2220,6 +2503,339 @@ class _CelulaDirigente extends StatelessWidget {
     );
   }
 }
+
+// ═══════════════════════════════════════════════════════════
+// TELA: EVENTOS
+// ═══════════════════════════════════════════════════════════
+
+class EventosScreen extends ConsumerWidget {
+  const EventosScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final List<List<LinhaEvento>> grupos = ref.watch(eventosProvider);
+
+    return Scaffold(
+      backgroundColor: AppColors.creme,
+      appBar: AppBar(
+        title: const Text(AppStrings.eventosTitulo),
+        actions: [
+          IconButton(
+            tooltip: 'Limpar tudo',
+            icon: const Icon(Icons.delete_outline),
+            onPressed: () async {
+              final bool? confirmar = await showDialog<bool>(
+                context: context,
+                builder: (BuildContext ctx) => AlertDialog(
+                  backgroundColor: AppColors.creme,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: const BorderSide(color: AppColors.dourado, width: 1.5),
+                  ),
+                  title: const Text('Limpar grade de eventos?'),
+                  content: const Text('Todos os dados preenchidos serão apagados.'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      child: const Text(AppStrings.cancelar),
+                    ),
+                    FilledButton(
+                      style: FilledButton.styleFrom(backgroundColor: AppColors.erro),
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      child: const Text('Limpar'),
+                    ),
+                  ],
+                ),
+              );
+              if (confirmar == true) {
+                ref.read(eventosProvider.notifier).limparTudo();
+              }
+            },
+          ),
+        ],
+      ),
+      body: Column(children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(8),
+          color: AppColors.cremeCard,
+          child: const Row(children: [
+            Icon(Icons.touch_app_outlined, size: 16, color: AppColors.textoMedio),
+            SizedBox(width: 6),
+            Expanded(child: Text(AppStrings.eventoInstrucao,
+              style: TextStyle(color: AppColors.textoMedio, fontSize: 11))),
+          ]),
+        ),
+        Expanded(child: _GradeEventos(grupos: grupos)),
+      ]),
+    );
+  }
+}
+
+class _GradeEventos extends ConsumerWidget {
+  const _GradeEventos({required this.grupos});
+  final List<List<LinhaEvento>> grupos;
+
+  static const double wN = 50;
+  static const double wNome = 190;
+  static const double wDias = 130;
+  static const double wPg = 60;
+  static const double hHeader = 40;
+  static const double hLinha = 56;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final double larguraTotal =
+        (wN + wNome + wDias + wPg) * GradeConfig.eventoGrupos;
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: SizedBox(
+        width: larguraTotal,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              for (int g = 0; g < GradeConfig.eventoGrupos; g++) ...[
+                _CelulaHeaderEvento(largura: wN, altura: hHeader, texto: AppStrings.eventoColN),
+                _CelulaHeaderEvento(largura: wNome, altura: hHeader, texto: AppStrings.eventoColNome),
+                _CelulaHeaderEvento(largura: wDias, altura: hHeader, texto: AppStrings.eventoColDias),
+                _CelulaHeaderEvento(largura: wPg, altura: hHeader, texto: AppStrings.eventoColPg),
+              ],
+            ]),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (int l = 0; l < GradeConfig.eventoLinhas; l++)
+                      _linhaEvento(context, ref, l),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _linhaEvento(BuildContext context, WidgetRef ref, int linha) {
+    return Row(children: [
+      for (int g = 0; g < GradeConfig.eventoGrupos; g++) ...[
+        SizedBox(
+          width: wN, height: hLinha,
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppColors.cremeEscuro,
+              border: Border.all(color: AppColors.dourado.withValues(alpha: 0.5), width: 0.8),
+            ),
+            child: Center(child: Text(
+              (g * GradeConfig.eventoLinhas + linha + 1).toString().padLeft(2, '0'),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.textoEscuro),
+            )),
+          ),
+        ),
+        SizedBox(
+          width: wNome, height: hLinha,
+          child: _CelulaEventoEditavel(
+            onTap: () async {
+              final String? v = await abrirDialogEditarTexto(
+                context: context,
+                titulo: 'Nome — Nº ${(g * GradeConfig.eventoLinhas + linha + 1).toString().padLeft(2, '0')}',
+                valorInicial: grupos[g][linha].nome,
+                label: 'Nome do irmão',
+              );
+              if (v != null) {
+                ref.read(eventosProvider.notifier).atualizarNome(g, linha, v.trim());
+              }
+            },
+            child: Center(child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                grupos[g][linha].nome,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textoEscuro),
+              ),
+            )),
+          ),
+        ),
+        SizedBox(
+          width: wDias, height: hLinha,
+          child: _CelulaDias(
+            dias: grupos[g][linha].dias,
+            onToggle: (int diaIdx) {
+              ref.read(eventosProvider.notifier).toggleDia(g, linha, diaIdx);
+            },
+          ),
+        ),
+        SizedBox(
+          width: wPg, height: hLinha,
+          child: _CelulaPg(
+            pg: grupos[g][linha].pg,
+            onTap: () {
+              ref.read(eventosProvider.notifier).ciclarPg(g, linha);
+            },
+          ),
+        ),
+      ],
+    ]);
+  }
+}
+
+class _CelulaHeaderEvento extends StatelessWidget {
+  const _CelulaHeaderEvento({
+    required this.largura,
+    required this.altura,
+    required this.texto,
+  });
+  final double largura;
+  final double altura;
+  final String texto;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: largura, height: altura,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.azulMarinho,
+          border: Border.all(color: AppColors.dourado.withValues(alpha: 0.5), width: 0.8),
+        ),
+        child: Center(child: Text(
+          texto,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.creme),
+        )),
+      ),
+    );
+  }
+}
+
+class _CelulaEventoEditavel extends StatelessWidget {
+  const _CelulaEventoEditavel({required this.child, required this.onTap});
+  final Widget child;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.creme,
+        border: Border.all(color: AppColors.dourado.withValues(alpha: 0.5), width: 0.8),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(onTap: onTap, child: child),
+      ),
+    );
+  }
+}
+
+class _CelulaDias extends StatelessWidget {
+  const _CelulaDias({required this.dias, required this.onToggle});
+  final List<bool> dias;
+  final void Function(int) onToggle;
+
+  static const List<String> rotulos = <String>['SEX', 'SÁB', 'DOM'];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.creme,
+        border: Border.all(color: AppColors.dourado.withValues(alpha: 0.5), width: 0.8),
+      ),
+      child: Row(children: [
+        for (int d = 0; d < 3; d++)
+          Expanded(
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => onToggle(d),
+                child: Container(
+                  margin: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color: dias[d] ? AppColors.eventoRoxo : AppColors.cremeCard,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: dias[d] ? AppColors.eventoRoxo : AppColors.dourado.withValues(alpha: 0.4),
+                    ),
+                  ),
+                  child: Center(child: Text(
+                    rotulos[d],
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: dias[d] ? Colors.white : AppColors.textoMedio,
+                    ),
+                  )),
+                ),
+              ),
+            ),
+          ),
+      ]),
+    );
+  }
+}
+
+class _CelulaPg extends StatelessWidget {
+  const _CelulaPg({required this.pg, required this.onTap});
+  final int pg;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    Color cor;
+    IconData icone;
+    if (pg == 1) {
+      cor = AppColors.eventoVerde;
+      icone = Icons.check;
+    } else if (pg == 2) {
+      cor = AppColors.eventoAmarelo;
+      icone = Icons.close;
+    } else {
+      cor = AppColors.cremeCard;
+      icone = Icons.circle_outlined;
+    }
+    final bool ativo = pg != 0;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.creme,
+        border: Border.all(color: AppColors.dourado.withValues(alpha: 0.5), width: 0.8),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(4),
+            child: Container(
+              decoration: BoxDecoration(
+                color: cor,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: ativo ? cor : AppColors.dourado.withValues(alpha: 0.4),
+                ),
+              ),
+              child: Center(child: Icon(
+                icone,
+                size: 22,
+                color: ativo ? Colors.white : AppColors.textoMedio.withValues(alpha: 0.5),
+              )),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// TELA: S-13
+// ═══════════════════════════════════════════════════════════
 
 class S13Screen extends ConsumerWidget {
   const S13Screen({super.key});
@@ -2528,7 +3144,10 @@ class _BlocoS13 extends ConsumerWidget {
                         ),
                       );
                       if (conf == true) {
-                        ref.read(s13Provider.notifier).limparLinha(int.parse(bloco.numero));
+                        final int n = int.tryParse(bloco.numero) ?? -1;
+                        if (n > 0) {
+                          ref.read(s13Provider.notifier).limparLinha(n);
+                        }
                       }
                     }
                   : null,
@@ -2585,47 +3204,659 @@ class _CelulaS13Editavel extends StatelessWidget {
   }
 }
 
-class ScreenPlaceholder extends StatelessWidget {
-  const ScreenPlaceholder({super.key, required this.titulo, required this.icone});
-  final String titulo;
-  final IconData icone;
+// ═══════════════════════════════════════════════════════════
+// TELA: ADMIN
+// ═══════════════════════════════════════════════════════════
+
+class AdminScreen extends ConsumerWidget {
+  const AdminScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final List<Administrador> admins = ref.watch(adminsProvider);
+    final Administrador? logado = ref.watch(adminLogadoProvider);
+    final bool temPrincipal = admins.any((Administrador a) => a.principal);
+
+    if (logado != null) {
+      return _AdminPainelScreen(adminLogado: logado);
+    }
+    if (!temPrincipal) {
+      return const _AdminSetupPrincipalScreen();
+    }
+    return const _AdminLoginScreen();
+  }
+}
+
+class _AdminSetupPrincipalScreen extends ConsumerStatefulWidget {
+  const _AdminSetupPrincipalScreen();
+
+  @override
+  ConsumerState<_AdminSetupPrincipalScreen> createState() =>
+      _AdminSetupPrincipalScreenState();
+}
+
+class _AdminSetupPrincipalScreenState
+    extends ConsumerState<_AdminSetupPrincipalScreen> {
+  final TextEditingController _nomeCtrl = TextEditingController();
+  final TextEditingController _pinCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _nomeCtrl.dispose();
+    _pinCtrl.dispose();
+    super.dispose();
+  }
+
+  void _criar() {
+    final String nome = _nomeCtrl.text.trim();
+    final String pin = _pinCtrl.text.trim();
+    if (nome.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(AppStrings.adminNomeVazio)),
+      );
+      return;
+    }
+    if (pin.length != 4 || int.tryParse(pin) == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(AppStrings.adminPinInvalido)),
+      );
+      return;
+    }
+    ref.read(adminsProvider.notifier).criarPrincipal(nome, pin);
+    final Administrador novo = ref.read(adminsProvider).firstWhere(
+          (Administrador a) => a.principal,
+        );
+    ref.read(adminLogadoProvider.notifier).entrar(novo);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.creme,
-      appBar: AppBar(title: Text(titulo)),
-      body: Center(child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icone, size: 72, color: AppColors.dourado),
-            const SizedBox(height: 24),
-            Text(titulo, textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.textoEscuro, fontSize: 22, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 12),
-            const Text(AppStrings.moduloEmDesenvolvimento, textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textoMedio, fontSize: 14)),
-          ],
-        ),
-      )),
+      appBar: AppBar(title: const Text(AppStrings.adminTitulo)),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(children: [
+          const SizedBox(height: 20),
+          Container(
+            width: 90, height: 90, alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: AppColors.azulMarinho,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: AppColors.dourado, width: 2),
+            ),
+            child: const Icon(Icons.admin_panel_settings, size: 52, color: AppColors.dourado),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            AppStrings.adminCriarPrincipal,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppColors.textoEscuro,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'É a primeira vez que este app é configurado. Crie o Administrador Principal.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppColors.textoMedio, fontSize: 13),
+          ),
+          const SizedBox(height: 28),
+          TextField(
+            controller: _nomeCtrl,
+            autofocus: true,
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(
+              labelText: AppStrings.adminNome,
+              prefixIcon: Icon(Icons.person_outline),
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _pinCtrl,
+            keyboardType: TextInputType.number,
+            maxLength: 4,
+            obscureText: true,
+            decoration: const InputDecoration(
+              labelText: AppStrings.adminPin,
+              prefixIcon: Icon(Icons.lock_outline),
+              border: OutlineInputBorder(),
+              counterText: '',
+            ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: _criar,
+              icon: const Icon(Icons.check),
+              label: const Text(AppStrings.adminCriar),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.azulMarinho,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+            ),
+          ),
+        ]),
+      ),
     );
   }
 }
 
-class EventosScreen extends StatelessWidget {
-  const EventosScreen({super.key});
+class _AdminLoginScreen extends ConsumerStatefulWidget {
+  const _AdminLoginScreen();
+
+  @override
+  ConsumerState<_AdminLoginScreen> createState() => _AdminLoginScreenState();
+}
+
+class _AdminLoginScreenState extends ConsumerState<_AdminLoginScreen> {
+  final TextEditingController _nomeCtrl = TextEditingController();
+  final TextEditingController _pinCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _nomeCtrl.dispose();
+    _pinCtrl.dispose();
+    super.dispose();
+  }
+
+  void _entrar() {
+    final String nome = _nomeCtrl.text.trim();
+    final String pin = _pinCtrl.text.trim();
+    final Administrador? a =
+        ref.read(adminsProvider.notifier).autenticar(nome, pin);
+    if (a == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(AppStrings.adminCredenciaisErradas)),
+      );
+      return;
+    }
+    ref.read(adminLogadoProvider.notifier).entrar(a);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return const ScreenPlaceholder(titulo: AppStrings.abaEventos, icone: Icons.calendar_today_outlined);
+    return Scaffold(
+      backgroundColor: AppColors.creme,
+      appBar: AppBar(title: const Text(AppStrings.adminTitulo)),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(children: [
+          const SizedBox(height: 20),
+          Container(
+            width: 90, height: 90, alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: AppColors.azulMarinho,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: AppColors.dourado, width: 2),
+            ),
+            child: const Icon(Icons.lock_outline, size: 52, color: AppColors.dourado),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            AppStrings.adminLogin,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppColors.textoEscuro,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 28),
+          TextField(
+            controller: _nomeCtrl,
+            autofocus: true,
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(
+              labelText: AppStrings.adminNome,
+              prefixIcon: Icon(Icons.person_outline),
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _pinCtrl,
+            keyboardType: TextInputType.number,
+            maxLength: 4,
+            obscureText: true,
+            decoration: const InputDecoration(
+              labelText: AppStrings.adminPin,
+              prefixIcon: Icon(Icons.lock_outline),
+              border: OutlineInputBorder(),
+              counterText: '',
+            ),
+            onSubmitted: (_) => _entrar(),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: _entrar,
+              icon: const Icon(Icons.login),
+              label: const Text(AppStrings.adminEntrar),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.azulMarinho,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+            ),
+          ),
+        ]),
+      ),
+    );
   }
 }
 
-class AdminScreen extends StatelessWidget {
-  const AdminScreen({super.key});
+class _AdminPainelScreen extends ConsumerWidget {
+  const _AdminPainelScreen({required this.adminLogado});
+  final Administrador adminLogado;
+
   @override
-  Widget build(BuildContext context) {
-    return const ScreenPlaceholder(titulo: AppStrings.abaAdmin, icone: Icons.settings_outlined);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final List<Administrador> admins = ref.watch(adminsProvider);
+    final bool podeCriar = ref.read(adminsProvider.notifier).podeCriarAuxiliar;
+    final int totalAuxiliares =
+        admins.where((Administrador a) => !a.principal).length;
+
+    return Scaffold(
+      backgroundColor: AppColors.creme,
+      appBar: AppBar(
+        title: const Text(AppStrings.adminPainel),
+        actions: [
+          IconButton(
+            tooltip: AppStrings.adminSair,
+            icon: const Icon(Icons.logout),
+            onPressed: () {
+              ref.read(adminLogadoProvider.notifier).sair();
+            },
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: AppColors.azulMarinho,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AppColors.dourado, width: 1.5),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 52,
+                        height: 52,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: AppColors.dourado,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Icon(
+                          adminLogado.principal
+                              ? Icons.verified_user
+                              : Icons.person,
+                          color: AppColors.azulProfundo,
+                          size: 30,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${AppStrings.adminBemVindo}, ${adminLogado.nome}',
+                              style: const TextStyle(
+                                color: AppColors.creme,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: adminLogado.principal
+                                    ? AppColors.dourado
+                                    : AppColors.azulClaro,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                adminLogado.principal
+                                    ? AppStrings.adminPrincipalLabel
+                                    : AppStrings.adminAuxiliarLabel,
+                                style: TextStyle(
+                                  color: adminLogado.principal
+                                      ? AppColors.azulProfundo
+                                      : AppColors.creme,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    adminLogado.principal
+                        ? AppStrings.adminInstrucaoPrincipal
+                        : AppStrings.adminInstrucaoAuxiliar,
+                    style: const TextStyle(
+                      color: AppColors.creme,
+                      fontSize: 12,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                const Text(
+                  'Administradores',
+                  style: TextStyle(
+                    color: AppColors.textoEscuro,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.cremeCard,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: AppColors.dourado.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  child: Text(
+                    '$totalAuxiliares / ${GradeConfig.maxAdminsAuxiliares}',
+                    style: const TextStyle(
+                      color: AppColors.textoEscuro,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            for (final Administrador a in admins)
+              _AdminItem(
+                admin: a,
+                podeRemover: adminLogado.principal && !a.principal,
+              ),
+            const SizedBox(height: 20),
+            if (adminLogado.principal)
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: podeCriar
+                      ? () => _abrirDialogCriarAuxiliar(context, ref)
+                      : null,
+                  icon: const Icon(Icons.person_add),
+                  label: Text(
+                    podeCriar
+                        ? AppStrings.adminAdd
+                        : AppStrings.adminLimite,
+                  ),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: podeCriar
+                        ? AppColors.azulMarinho
+                        : AppColors.textoMedio,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _abrirDialogCriarAuxiliar(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final TextEditingController nomeCtrl = TextEditingController();
+    final TextEditingController pinCtrl = TextEditingController();
+
+    final bool? confirmar = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext ctx) {
+        return AlertDialog(
+          backgroundColor: AppColors.creme,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: AppColors.dourado, width: 1.5),
+          ),
+          title: const Text(
+            AppStrings.adminAdd,
+            style: TextStyle(
+              color: AppColors.textoEscuro,
+              fontWeight: FontWeight.w700,
+              fontSize: 18,
+            ),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nomeCtrl,
+                  autofocus: true,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: const InputDecoration(
+                    labelText: AppStrings.adminNome,
+                    prefixIcon: Icon(Icons.person_outline),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: pinCtrl,
+                  keyboardType: TextInputType.number,
+                  maxLength: 4,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: AppStrings.adminPin,
+                    prefixIcon: Icon(Icons.lock_outline),
+                    border: OutlineInputBorder(),
+                    counterText: '',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text(
+                AppStrings.cancelar,
+                style: TextStyle(color: AppColors.textoMedio),
+              ),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.azulMarinho,
+              ),
+              onPressed: () {
+                final String nome = nomeCtrl.text.trim();
+                final String pin = pinCtrl.text.trim();
+                if (nome.isEmpty) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    const SnackBar(
+                      content: Text(AppStrings.adminNomeVazio),
+                    ),
+                  );
+                  return;
+                }
+                if (pin.length != 4 || int.tryParse(pin) == null) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    const SnackBar(
+                      content: Text(AppStrings.adminPinInvalido),
+                    ),
+                  );
+                  return;
+                }
+                Navigator.of(ctx).pop(true);
+              },
+              child: const Text(AppStrings.salvar),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmar == true) {
+      ref.read(adminsProvider.notifier).criarAuxiliar(
+            nomeCtrl.text.trim(),
+            pinCtrl.text.trim(),
+          );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text(AppStrings.adminCriarSucesso)),
+        );
+      }
+    }
+
+    nomeCtrl.dispose();
+    pinCtrl.dispose();
   }
 }
+
+class _AdminItem extends ConsumerWidget {
+  const _AdminItem({required this.admin, required this.podeRemover});
+  final Administrador admin;
+  final bool podeRemover;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.cremeCard,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: admin.principal
+              ? AppColors.dourado
+              : AppColors.dourado.withValues(alpha: 0.3),
+          width: admin.principal ? 1.5 : 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: admin.principal
+                  ? AppColors.dourado
+                  : AppColors.azulMarinho,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              admin.principal ? Icons.verified_user : Icons.person,
+              color: admin.principal ? AppColors.azulProfundo : AppColors.creme,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  admin.nome,
+                  style: const TextStyle(
+                    color: AppColors.textoEscuro,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  admin.principal
+                      ? AppStrings.adminPrincipalLabel
+                      : AppStrings.adminAuxiliarLabel,
+                  style: TextStyle(
+                    color: admin.principal
+                        ? AppColors.douradoConcluido
+                        : AppColors.textoMedio,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (podeRemover)
+            IconButton(
+              tooltip: AppStrings.adminRemover,
+              icon: const Icon(
+                Icons.delete_outline,
+                color: AppColors.erro,
+                size: 20,
+              ),
+              onPressed: () async {
+                final bool? conf = await showDialog<bool>(
+                  context: context,
+                  builder: (BuildContext c) => AlertDialog(
+                    backgroundColor: AppColors.creme,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: const BorderSide(
+                        color: AppColors.dourado,
+                        width: 1.5,
+                      ),
+                    ),
+                    title: const Text(AppStrings.adminRemoverConfirm),
+                    content: Text('Remover "${admin.nome}"?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(c).pop(false),
+                        child: const Text(AppStrings.cancelar),
+                      ),
+                      FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.erro,
+                        ),
+                        onPressed: () => Navigator.of(c).pop(true),
+                        child: const Text(AppStrings.adminRemover),
+                      ),
+                    ],
+                  ),
+                );
+                if (conf == true) {
+                  ref.read(adminsProvider.notifier).remover(admin.id);
+                }
+              },
+            ),
+        ],
+      ),
+    );
+  }
+}                                                
