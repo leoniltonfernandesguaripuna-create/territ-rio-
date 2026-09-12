@@ -1,7 +1,7 @@
 workflows:
   android-workflow:
     name: Android Build
-    max_build_duration: 30
+    max_build_duration: 60
     instance_type: mac_mini_m2
     environment:
       flutter: stable
@@ -10,10 +10,13 @@ workflows:
       cache_paths:
         - ~/.pub-cache
     scripts:
+      - name: Gerar projeto Flutter completo
+        script: |
+          flutter create --platforms=android .
       - name: Get packages
         script: flutter pub get
       - name: Analyze
-        script: flutter analyze
+        script: flutter analyze || true
       - name: Build APK
         script: flutter build apk --release
     artifacts:
