@@ -10,37 +10,11 @@ workflows:
       cache_paths:
         - ~/.pub-cache
     scripts:
-      - name: Atualizar Flutter
-        script: flutter upgrade --force
-
-      - name: Gerar pastas Android (Flutter Create)
-        script: flutter create --platforms=android .
-
       - name: Get packages
         script: flutter pub get
 
-      - name: Corrigir SDK nos pacotes do pub-cache
-        script: |
-          # Corrige todos os plugins no pub-cache para usarem SDK 35 diretamente nos arquivos
-          find ~/.pub-cache -name "build.gradle" -path "*android*" -type f 2>/dev/null | while read f; do
-            perl -pi -e 's/(compileSdkVersion|compileSdk)\s*=?\s*\d+/$1 35/g' "$f"
-            perl -pi -e 's/(targetSdkVersion|targetSdk)\s*=?\s*\d+/$1 35/g' "$f"
-          done
-          echo "Todos os pacotes do pub-cache corrigidos para SDK 35."
-
-      - name: Configurar SDK 35 no app principal
-        script: |
-          perl -pi -e 's/(compileSdkVersion|compileSdk)\s*=?\s*\d+/$1 35/g' android/app/build.gradle
-          perl -pi -e 's/(targetSdkVersion|targetSdk)\s*=?\s*\d+/$1 35/g' android/app/build.gradle
-          echo "app/build.gradle corrigido para SDK 35."
-
       - name: Criar google-services.json
         script: echo "$GOOGLE_SERVICES_JSON" > $CM_BUILD_DIR/android/app/google-services.json
-
-      - name: Aplicar plugin Google Services
-        script: |
-          perl -pi -e 's/apply plugin: '\''com.android.application'\''/apply plugin: '\''com.android.application'\''\napply plugin: '\''com.google.gms.google-services'\''/g' android/app/build.gradle
-          echo "Plugin do Firebase injetado."
 
       - name: Clean build
         script: flutter clean
@@ -58,4 +32,4 @@ workflows:
         notify:
           success: true
           failure: true
-        
+  
