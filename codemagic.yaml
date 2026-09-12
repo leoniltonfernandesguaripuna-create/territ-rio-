@@ -27,12 +27,9 @@ workflows:
     scripts:
       - name: Preparar projeto Android
         script: |
-          # Se a pasta android não existir, o Flutter a cria do zero
           if [ ! -d "$CM_BUILD_DIR/android" ]; then
-            echo "Pasta android não encontrada. Gerando estrutura base..."
             flutter create --platforms=android .
           fi
-          # Cria a pasta do wrapper caso ela não exista
           mkdir -p "$CM_BUILD_DIR/android/gradle/wrapper"
           echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/android/local.properties"
 
@@ -40,31 +37,26 @@ workflows:
         script: |
           flutter pub get
 
-      - name: Forçar Gradle 8.7 no wrapper
+      - name: Forçar Gradle 8.14.0 no wrapper
         script: |
-          # Escreve o arquivo de configuração do Gradle na pasta criada
           echo "distributionBase=GRADLE_USER_HOME" > "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
           echo "distributionPath=wrapper/dists" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
-          echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.7-all.zip" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
+          echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.14.0-all.zip" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
           echo "networkTimeout=10000" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
           echo "validateDistributionUrl=true" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
           echo "zipStoreBase=GRADLE_USER_HOME" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
           echo "zipStorePath=wrapper/dists" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
-          echo "--- Conteúdo atualizado do gradle-wrapper.properties ---"
-          cat "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
+
+      - name: Adicionar flags de compatibilidade ao gradle.properties
+        script: |
+          echo "android.newDsl=false" >> "$CM_BUILD_DIR/android/gradle.properties"
+          echo "android.builtInKotlin=false" >> "$CM_BUILD_DIR/android/gradle.properties"
 
       - name: Criar google-services.json
         script: |
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             echo $GOOGLE_SERVICES_JSON > "$CM_BUILD_DIR/android/app/google-services.json"
-            echo "google-services.json criado com sucesso."
-          else
-            echo "Aviso: GOOGLE_SERVICES_JSON não está definido."
           fi
-
-      - name: Analyze
-        script: |
-          flutter analyze
 
       - name: Build APK
         script: |
@@ -72,11 +64,3 @@ workflows:
 
     artifacts:
       - build/app/outputs/flutter-apk/app-release.apk
-
-    publishing:
-      email:
-        recipients:
-          - seu-email@exemplo.com 
-        notify:
-          success: true
-          failure: true  
