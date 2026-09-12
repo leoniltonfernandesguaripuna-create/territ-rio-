@@ -4,7 +4,7 @@ workflows:
     max_build_duration: 60
     instance_type: mac_mini_m2
     environment:
-      flutter: stable
+      flutter: 3.22.0  # Força uma versão do Flutter que já usa SDK 34 por padrão
       java: 17
     cache:
       cache_paths:
@@ -13,13 +13,12 @@ workflows:
       - name: Gerar pastas Android (Flutter Create)
         script: flutter create --platforms=android .
 
-      - name: Atualizar compileSdk e targetSdk
+      - name: Forçar Compilação SDK 34
         script: |
-          perl -pi -e 's/compileSdkVersion \d+/compileSdkVersion 34/g' android/app/build.gradle
-          perl -pi -e 's/compileSdk \d+/compileSdk 34/g' android/app/build.gradle
-          perl -pi -e 's/targetSdkVersion \d+/targetSdkVersion 34/g' android/app/build.gradle
-          perl -pi -e 's/targetSdk \d+/targetSdk 34/g' android/app/build.gradle
-          echo "Versões do SDK atualizadas para 34."
+          # Comando mais forte que substitui qualquer variação de compileSdkVersion e targetSdkVersion
+          perl -pi -e 's/compileSdk(Version)?\s*=?\s*\d+/compileSdk 34/g' android/app/build.gradle
+          perl -pi -e 's/targetSdk(Version)?\s*=?\s*\d+/targetSdk 34/g' android/app/build.gradle
+          echo "SDK do Android atualizado para 34 com sucesso."
 
       - name: Get packages
         script: flutter pub get
@@ -30,7 +29,7 @@ workflows:
       - name: Aplicar plugin Google Services
         script: |
           perl -pi -e 's/apply plugin: '\''com.android.application'\''/apply plugin: '\''com.android.application'\''\napply plugin: '\''com.google.gms.google-services'\''/g' android/app/build.gradle
-          echo "Plugin do Firebase injetado com sucesso."
+          echo "Plugin do Firebase injetado."
 
       - name: Clean build
         script: flutter clean
