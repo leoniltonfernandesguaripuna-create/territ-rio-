@@ -37,15 +37,17 @@ workflows:
         script: |
           flutter pub get
 
-      - name: Forçar Gradle 8.14.0 no wrapper
-        script: |
-          echo "distributionBase=GRADLE_USER_HOME" > "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
-          echo "distributionPath=wrapper/dists" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
-          echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.14.0-all.zip" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
-          echo "networkTimeout=10000" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
-          echo "validateDistributionUrl=true" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
-          echo "zipStoreBase=GRADLE_USER_HOME" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
-          echo "zipStorePath=wrapper/dists" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
+      - name: Forçar Gradle 8.14 no wrapper
+  script: |
+    echo "distributionBase=GRADLE_USER_HOME" > "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
+    echo "distributionPath=wrapper/dists" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
+    echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.14-all.zip" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
+    echo "networkTimeout=10000" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
+    echo "validateDistributionUrl=true" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
+    echo "zipStoreBase=GRADLE_USER_HOME" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
+    echo "zipStorePath=wrapper/dists" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
+    echo "--- Conteúdo atualizado do gradle-wrapper.properties ---"
+    cat "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
 
       - name: Adicionar flags de compatibilidade ao gradle.properties
         script: |
