@@ -9,8 +9,10 @@
       groups:
         - firebase
     cache:
-      cache_paths:
-        - ~/.pub-cache
+  cache_paths:
+    - ~/.gradle/caches
+    - ~/.gradle/wrapper
+    - ~/.pub-cache
     scripts:
       - name: Gerar projeto Flutter completo
         script: flutter create --platforms=android --org com.leonilton .
