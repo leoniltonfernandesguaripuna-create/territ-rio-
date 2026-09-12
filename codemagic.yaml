@@ -6,6 +6,8 @@ workflows:
     environment:
       flutter: stable
       java: 17
+      groups:
+        - firebase
     cache:
       cache_paths:
         - ~/.pub-cache
@@ -33,4 +35,3 @@ workflows:
         notify:
           success: true
           failure: true
-  
