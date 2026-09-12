@@ -13,6 +13,14 @@ workflows:
       - name: Gerar pastas Android (Flutter Create)
         script: flutter create --platforms=android .
 
+      - name: Atualizar compileSdk e targetSdk
+        script: |
+          perl -pi -e 's/compileSdkVersion \d+/compileSdkVersion 34/g' android/app/build.gradle
+          perl -pi -e 's/compileSdk \d+/compileSdk 34/g' android/app/build.gradle
+          perl -pi -e 's/targetSdkVersion \d+/targetSdkVersion 34/g' android/app/build.gradle
+          perl -pi -e 's/targetSdk \d+/targetSdk 34/g' android/app/build.gradle
+          echo "Versões do SDK atualizadas para 34."
+
       - name: Get packages
         script: flutter pub get
 
@@ -40,4 +48,3 @@ workflows:
         notify:
           success: true
           failure: true
-  
