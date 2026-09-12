@@ -36,15 +36,8 @@ dependencies:
   shared_preferences: ^2.2.3
   image_picker: ^1.1.1
 
-dev_dependencies:
-  flutter_test:
-    sdk: flutter
-  drift_dev: ^2.18.0
-  build_runner: ^2.4.9
-  flutter_lints: ^4.0.0
-  
 
-dev_dependencies:
+  dev_dependencies:
   flutter_test:
     sdk: flutter
   drift_dev: ^2.18.0
