@@ -6,8 +6,6 @@ workflows:
     environment:
       flutter: stable
       java: 17
-      # groups:
-      #   - firebase
     cache:
       cache_paths:
         - ~/.pub-cache
@@ -24,7 +22,10 @@ workflows:
       - name: Aplicar plugin Google Services
         script: |
           perl -pi -e 's/apply plugin: '\''com.android.application'\''/apply plugin: '\''com.android.application'\''\napply plugin: '\''com.google.gms.google-services'\''/g' android/app/build.gradle
-          echo "Plugin Google Services aplicado com sucesso."
+          echo "Plugin do Firebase injetado com sucesso."
+
+      - name: Clean build
+        script: flutter clean
 
       - name: Build APK
         script: flutter build apk --release
@@ -39,3 +40,4 @@ workflows:
         notify:
           success: true
           failure: true
+  
