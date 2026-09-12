@@ -50,10 +50,14 @@ workflows:
 
       - name: Atualizar Android Gradle Plugin (AGP)
         script: |
-          # Atualiza o AGP no arquivo settings.gradle
-          sed -i '' 's/com.android.application" version "8.1.0"/com.android.application" version "8.11.1"/' "$CM_BUILD_DIR/android/settings.gradle"
-          echo "--- Verificando AGP atualizado em settings.gradle ---"
-          grep -A 2 "com.android.application" "$CM_BUILD_DIR/android/settings.gradle" || true
+          sed -i '' 's/com.android.application" version "[^"]*"/com.android.application" version "8.11.1"/' "$CM_BUILD_DIR/android/settings.gradle"
+
+      - name: Atualizar Kotlin Gradle Plugin (KGP)
+        script: |
+          # Atualiza a versão do Kotlin para 2.2.20, exigida pelo Flutter
+          sed -i '' 's/id "org.jetbrains.kotlin.android" version "[^"]*"/id "org.jetbrains.kotlin.android" version "2.2.20"/' "$CM_BUILD_DIR/android/settings.gradle"
+          echo "--- Conteúdo do settings.gradle após atualizações ---"
+          cat "$CM_BUILD_DIR/android/settings.gradle"
 
       - name: Adicionar flags de compatibilidade ao gradle.properties
         script: |
