@@ -1,4 +1,5 @@
-workflows:
+
+  workflows:
   android-workflow:
     name: Android Build
     max_build_duration: 60
@@ -16,11 +17,23 @@ workflows:
       - name: Criar google-services.json
         script: echo "$GOOGLE_SERVICES_JSON" > $CM_BUILD_DIR/android/app/google-services.json
 
-      - name: Baixar gradle-wrapper.jar
+      - name: Configurar Gradle 8.4 e wrapper
         script: |
+          # Cria a pasta correta
           mkdir -p android/gradle/wrapper
+          
+          # Cria o arquivo .properties dentro da pasta correta
+          cat > android/gradle/wrapper/gradle-wrapper.properties <<EOF
+          distributionBase=GRADLE_USER_HOME
+          distributionPath=wrapper/dists
+          zipStoreBase=GRADLE_USER_HOME
+          zipStorePath=wrapper/dists
+          distributionUrl=https\://services.gradle.org/distributions/gradle-8.4-all.zip
+          EOF
+          
+          # Baixa o .jar do Gradle 8.4 para a pasta correta
           curl -L -o android/gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/v8.4.0/gradle/wrapper/gradle-wrapper.jar
-          echo "gradle-wrapper.jar baixado com sucesso."
+          echo "Gradle 8.4 configurado com sucesso."
 
       - name: Clean build
         script: flutter clean
@@ -38,4 +51,3 @@ workflows:
         notify:
           success: true
           failure: true
-  
