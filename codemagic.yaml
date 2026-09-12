@@ -1,4 +1,4 @@
-workflows:
+      workflows:
   android-workflow:
     name: Android Build
     max_build_duration: 60
@@ -16,36 +16,23 @@ workflows:
       - name: Gerar pastas Android (Flutter Create)
         script: flutter create --platforms=android .
 
-      - name: Forçar Compilação SDK 35 Globalmente
-        script: |
-          # 1. Atualiza o app principal
-          perl -pi -e 's/(compileSdkVersion|compileSdk)\s*=?\s*\d+/$1 35/g' android/app/build.gradle
-          perl -pi -e 's/(targetSdkVersion|targetSdk)\s*=?\s*\d+/$1 35/g' android/app/build.gradle
-          
-          # 2. Força todos os subprojetos (como o 'printing') a usarem o SDK 35
-          # Usa plugins.withId que é a forma correta e não gera o erro "afterEvaluate"
-          cat >> android/build.gradle <<'EOF'
-
-          subprojects {
-              plugins.withId('com.android.application') {
-                  android {
-                      compileSdkVersion 35
-                      defaultConfig {
-                          targetSdkVersion 35
-                      }
-                  }
-              }
-              plugins.withId('com.android.library') {
-                  android {
-                      compileSdkVersion 35
-                  }
-              }
-          }
-          EOF
-          echo "SDK 35 forçado em todos os módulos com sucesso."
-
       - name: Get packages
         script: flutter pub get
+
+      - name: Corrigir SDK nos pacotes do pub-cache
+        script: |
+          # Corrige todos os plugins no pub-cache para usarem SDK 35 diretamente nos arquivos
+          find ~/.pub-cache -name "build.gradle" -path "*android*" -type f 2>/dev/null | while read f; do
+            perl -pi -e 's/(compileSdkVersion|compileSdk)\s*=?\s*\d+/$1 35/g' "$f"
+            perl -pi -e 's/(targetSdkVersion|targetSdk)\s*=?\s*\d+/$1 35/g' "$f"
+          done
+          echo "Todos os pacotes do pub-cache corrigidos para SDK 35."
+
+      - name: Configurar SDK 35 no app principal
+        script: |
+          perl -pi -e 's/(compileSdkVersion|compileSdk)\s*=?\s*\d+/$1 35/g' android/app/build.gradle
+          perl -pi -e 's/(targetSdkVersion|targetSdk)\s*=?\s*\d+/$1 35/g' android/app/build.gradle
+          echo "app/build.gradle corrigido para SDK 35."
 
       - name: Criar google-services.json
         script: echo "$GOOGLE_SERVICES_JSON" > $CM_BUILD_DIR/android/app/google-services.json
@@ -71,4 +58,4 @@ workflows:
         notify:
           success: true
           failure: true
-  
+        
