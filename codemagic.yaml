@@ -6,43 +6,34 @@ workflows:
     environment:
       flutter: stable
       java: 17
+      groups:
+        - firebase
     cache:
       cache_paths:
         - ~/.pub-cache
     scripts:
+      - name: Gerar projeto Flutter completo
+        script: flutter create --platforms=android --org com.leonilton .
       - name: Get packages
         script: flutter pub get
-
+      - name: Atualizar versões do Gradle e AGP
+        script: |
+          sed -i 's/com.android.application" version "[^"]*"/com.android.application" version "8.11.1"/g' android/settings.gradle
+          sed -i 's/com.android.library" version "[^"]*"/com.android.library" version "8.11.1"/g' android/settings.gradle
+          sed -i 's/org.jetbrains.kotlin.android" version "[^"]*"/org.jetbrains.kotlin.android" version "2.1.0"/g' android/settings.gradle
+          sed -i 's|distributionUrl=.*gradle-.*-all.zip|distributionUrl=https\\://services.gradle.org/distributions/gradle-8.12-all.zip|g' android/gradle/wrapper/gradle-wrapper.properties
       - name: Criar google-services.json
         script: echo "$GOOGLE_SERVICES_JSON" > $CM_BUILD_DIR/android/app/google-services.json
-
-      - name: Configurar Gradle 8.14.3 e wrapper
+      - name: Aplicar plugin Google Services
         script: |
-          # Cria a pasta correta
-          mkdir -p android/gradle/wrapper
-          
-          # Cria o arquivo .properties com a versão 8.14.3
-          cat > android/gradle/wrapper/gradle-wrapper.properties <<EOF
-          distributionBase=GRADLE_USER_HOME
-          distributionPath=wrapper/dists
-          zipStoreBase=GRADLE_USER_HOME
-          zipStorePath=wrapper/dists
-          distributionUrl=https\://services.gradle.org/distributions/gradle-8.14.3-all.zip
-          EOF
-          
-          # Baixa o .jar do Gradle 8.14.3 para a pasta correta
-          curl -L -o android/gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/v8.14.3/gradle/wrapper/gradle-wrapper.jar
-          echo "Gradle 8.14.3 configurado com sucesso."
-
-      - name: Clean build
-        script: flutter clean
-
+          sed -i '/apply plugin: .com.android.application./a apply plugin: "com.google.gms.google-services"' android/app/build.gradle
+          sed -i '/classpath "org.jetbrains.kotlin:kotlin-gradle-plugin"/a classpath "com.google.gms:google-services:4.4.0"' android/build.gradle
+      - name: Analyze
+        script: flutter analyze || true
       - name: Build APK
         script: flutter build apk --release
-
     artifacts:
       - build/app/outputs/flutter-apk/*.apk
-
     publishing:
       email:
         recipients:
