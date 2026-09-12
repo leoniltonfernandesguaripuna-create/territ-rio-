@@ -23,17 +23,21 @@ workflows:
           perl -pi -e 's/(targetSdkVersion|targetSdk)\s*=?\s*\d+/$1 35/g' android/app/build.gradle
           
           # 2. Força todos os subprojetos (como o 'printing') a usarem o SDK 35
+          # Usa plugins.withId que é a forma correta e não gera o erro "afterEvaluate"
           cat >> android/build.gradle <<'EOF'
 
           subprojects {
-              afterEvaluate { project ->
-                  if (project.hasProperty('android')) {
-                      project.android {
-                          compileSdkVersion 35
-                          defaultConfig {
-                              targetSdkVersion 35
-                          }
+              plugins.withId('com.android.application') {
+                  android {
+                      compileSdkVersion 35
+                      defaultConfig {
+                          targetSdkVersion 35
                       }
+                  }
+              }
+              plugins.withId('com.android.library') {
+                  android {
+                      compileSdkVersion 35
                   }
               }
           }
