@@ -6,6 +6,8 @@ workflows:
     environment:
       flutter: stable
       java: 17
+      # groups:
+      #   - firebase  # Deixe desativado por enquanto para evitar erros
     cache:
       cache_paths:
         - ~/.pub-cache
@@ -29,4 +31,3 @@ workflows:
         notify:
           success: true
           failure: true
-  
