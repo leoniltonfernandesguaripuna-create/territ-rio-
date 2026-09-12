@@ -12,7 +12,7 @@ workflows:
     scripts:
       - name: Gerar projeto Flutter completo
         script: |
-          flutter create --platforms=android .
+          flutter create --platforms=android .     
       - name: Get packages
         script: flutter pub get
       - name: Analyze
@@ -28,4 +28,3 @@ workflows:
         notify:
           success: true
           failure: true
-  
