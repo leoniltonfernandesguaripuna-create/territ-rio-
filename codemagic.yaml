@@ -8,7 +8,7 @@ workflows:
       flutter: stable
       java: 21
       groups:
-        - google_credentials 
+        - google_credentials # Certifique-se de ter criado este grupo e a variável GOOGLE_SERVICES_JSON
       
     cache:
       cache_paths:
@@ -25,11 +25,15 @@ workflows:
           source: true
           
     scripts:
-      - name: Preparar projeto Android
+      - name: Verificar estrutura do Android
         script: |
+          # Garante que a pasta android existe (ela DEVE estar no seu GitHub)
           if [ ! -d "$CM_BUILD_DIR/android" ]; then
-            flutter create --platforms=android .
+            echo "ERRO CRÍTICO: A pasta 'android' não foi encontrada no seu repositório!"
+            echo "Por favor, gere a pasta android no seu computador rodando 'flutter create --platforms=android .' e faça o commit dela para o GitHub."
+            exit 1
           fi
+          # Cria a pasta do wrapper caso ela não exista
           mkdir -p "$CM_BUILD_DIR/android/gradle/wrapper"
           echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/android/local.properties"
 
@@ -38,16 +42,14 @@ workflows:
           flutter pub get
 
       - name: Forçar Gradle 8.14 no wrapper
-  script: |
-    echo "distributionBase=GRADLE_USER_HOME" > "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
-    echo "distributionPath=wrapper/dists" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
-    echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.14-all.zip" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
-    echo "networkTimeout=10000" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
-    echo "validateDistributionUrl=true" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
-    echo "zipStoreBase=GRADLE_USER_HOME" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
-    echo "zipStorePath=wrapper/dists" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
-    echo "--- Conteúdo atualizado do gradle-wrapper.properties ---"
-    cat "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
+        script: |
+          echo "distributionBase=GRADLE_USER_HOME" > "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
+          echo "distributionPath=wrapper/dists" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
+          echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.14-all.zip" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
+          echo "networkTimeout=10000" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
+          echo "validateDistributionUrl=true" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
+          echo "zipStoreBase=GRADLE_USER_HOME" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
+          echo "zipStorePath=wrapper/dists" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
 
       - name: Adicionar flags de compatibilidade ao gradle.properties
         script: |
@@ -58,7 +60,13 @@ workflows:
         script: |
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             echo $GOOGLE_SERVICES_JSON > "$CM_BUILD_DIR/android/app/google-services.json"
+          else
+            echo "Aviso: GOOGLE_SERVICES_JSON não está definido."
           fi
+
+      - name: Analyze
+        script: |
+          flutter analyze
 
       - name: Build APK
         script: |
@@ -66,3 +74,11 @@ workflows:
 
     artifacts:
       - build/app/outputs/flutter-apk/app-release.apk
+
+    publishing:
+      email:
+        recipients:
+          - seu-email@exemplo.com 
+        notify:
+          success: true
+          failure: true
