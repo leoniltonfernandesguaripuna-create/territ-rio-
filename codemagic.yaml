@@ -4,7 +4,7 @@ workflows:
     max_build_duration: 60
     instance_type: mac_mini_m2
     environment:
-      flutter: 3.22.0  # Força uma versão do Flutter que já usa SDK 34 por padrão
+      flutter: stable # Volta para o stable para suportar o novo método withValues
       java: 17
     cache:
       cache_paths:
@@ -13,12 +13,12 @@ workflows:
       - name: Gerar pastas Android (Flutter Create)
         script: flutter create --platforms=android .
 
-      - name: Forçar Compilação SDK 34
+      - name: Forçar Compilação SDK 35
         script: |
-          # Comando mais forte que substitui qualquer variação de compileSdkVersion e targetSdkVersion
-          perl -pi -e 's/compileSdk(Version)?\s*=?\s*\d+/compileSdk 34/g' android/app/build.gradle
-          perl -pi -e 's/targetSdk(Version)?\s*=?\s*\d+/targetSdk 34/g' android/app/build.gradle
-          echo "SDK do Android atualizado para 34 com sucesso."
+          # Atualiza o SDK do Android para a versão 35 (exigida pelo Flutter moderno)
+          perl -pi -e 's/compileSdk(Version)?\s*=?\s*\d+/compileSdk 35/g' android/app/build.gradle
+          perl -pi -e 's/targetSdk(Version)?\s*=?\s*\d+/targetSdk 35/g' android/app/build.gradle
+          echo "SDK do Android atualizado para 35 com sucesso."
 
       - name: Get packages
         script: flutter pub get
