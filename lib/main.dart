@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -96,7 +99,9 @@ abstract final class AppStrings {
   static const String adminRemoverConfirm = 'Remover este administrador?';
   static const String somenteAdmin = 'Somente administradores podem editar aqui';
   static const String modoLeitura = 'Modo leitura — somente administradores editam';
-  static const String publicadorPodeEditarGrades = 'Você pode editar as grades Dirigente e Quadras';
+  static const String publicadorPodeEditarGrades =
+      'Você pode editar as grades Dirigente e Quadras';
+  static const String imprimir = 'Imprimir';
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1196,6 +1201,309 @@ void executarSeAdmin(BuildContext context, WidgetRef ref, VoidCallback acao) {
 }
 
 // ═══════════════════════════════════════════════════════════
+// HELPER: IMPRESSÃO
+// ═══════════════════════════════════════════════════════════
+
+class ImpressaoHelper {
+  static pw.Widget _pdfCell(String texto, {bool bold = false}) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.all(4),
+      child: pw.Text(
+        texto,
+        style: pw.TextStyle(
+          fontSize: 9,
+          fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
+        ),
+      ),
+    );
+  }
+
+  static String _diasTexto(List<bool> dias) {
+    final List<String> marcados = <String>[];
+    if (dias[0]) marcados.add('SEX');
+    if (dias[1]) marcados.add('SÁB');
+    if (dias[2]) marcados.add('DOM');
+    return marcados.isEmpty ? '—' : marcados.join(', ');
+  }
+
+  static String _pgTexto(int pg) {
+    if (pg == 1) return 'Pago';
+    if (pg == 2) return 'Pendente';
+    return '—';
+  }
+
+  static String _semanaDe(int ano, int mes, int dia) {
+    try {
+      return nomeDiaSemana(DateTime(ano, mes, dia).weekday);
+    } catch (_) {
+      return '—';
+    }
+  }
+
+  static Future<void> imprimirS13(RegistroS13 registro) async {
+    final pw.Document doc = pw.Document();
+    doc.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4.landscape,
+        margin: const pw.EdgeInsets.all(20),
+        build: (pw.Context context) {
+          return <pw.Widget>[
+            pw.Center(
+              child: pw.Text(
+                'REGISTRO DE DESIGNAÇÃO DE TERRITÓRIO',
+                style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+              ),
+            ),
+            pw.SizedBox(height: 10),
+            pw.Text(
+              'Ano de Serviço: ${registro.anoServico}',
+              style: const pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold),
+            ),
+            pw.SizedBox(height: 10),
+            pw.Table(
+              border: pw.TableBorder.all(color: PdfColors.black, width: 0.8),
+              children: <pw.TableRow>[
+                pw.TableRow(
+                  decoration: const pw.BoxDecoration(color: PdfColors.grey300),
+                  children: <pw.Widget>[
+                    _pdfCell('Terr.\nnº', bold: true),
+                    _pdfCell('Última data\nconcluída*', bold: true),
+                    _pdfCell('Designado 1', bold: true),
+                    _pdfCell('Data design.', bold: true),
+                    _pdfCell('Data concl.', bold: true),
+                    _pdfCell('Designado 2', bold: true),
+                    _pdfCell('Data design.', bold: true),
+                    _pdfCell('Data concl.', bold: true),
+                  ],
+                ),
+                for (final BlocoTerritorioS13 b in registro.territorios)
+                  pw.TableRow(
+                    children: <pw.Widget>[
+                      _pdfCell(b.numero),
+                      _pdfCell(b.dataConclusao),
+                      _pdfCell(b.grupos.isNotEmpty && b.grupos[0].isNotEmpty ? b.grupos[0][0].nome : ''),
+                      _pdfCell(b.grupos.isNotEmpty && b.grupos[0].isNotEmpty ? b.grupos[0][0].dataDesignacao : ''),
+                      _pdfCell(b.grupos.isNotEmpty && b.grupos[0].isNotEmpty ? b.grupos[0][0].dataConclusao : ''),
+                      _pdfCell(b.grupos.isNotEmpty && b.grupos[1].isNotEmpty ? b.grupos[1][0].nome : ''),
+                      _pdfCell(b.grupos.isNotEmpty && b.grupos[1].isNotEmpty ? b.grupos[1][0].dataDesignacao : ''),
+                      _pdfCell(b.grupos.isNotEmpty && b.grupos[1].isNotEmpty ? b.grupos[1][0].dataConclusao : ''),
+                    ],
+                  ),
+              ],
+            ),
+            pw.SizedBox(height: 12),
+            pw.Text(
+              '*Ao iniciar uma nova folha, use esta coluna para registrar a data em que cada território foi concluído pela última vez.',
+              style: const pw.TextStyle(fontSize: 8),
+            ),
+            pw.SizedBox(height: 4),
+            pw.Text(
+              'S-13-T  01/22',
+              style: const pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
+            ),
+          ];
+        },
+      ),
+    );
+    await Printing.layoutPdf(onLayout: (PdfPageFormat format) => doc.save());
+  }
+
+  static Future<void> imprimirEventos(List<List<LinhaEvento>> grupos) async {
+    final pw.Document doc = pw.Document();
+    doc.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4.landscape,
+        margin: const pw.EdgeInsets.all(20),
+        build: (pw.Context context) {
+          return <pw.Widget>[
+            pw.Center(
+              child: pw.Text(
+                'EVENTOS',
+                style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+              ),
+            ),
+            pw.SizedBox(height: 10),
+            pw.Table(
+              border: pw.TableBorder.all(color: PdfColors.black, width: 0.8),
+              children: <pw.TableRow>[
+                pw.TableRow(
+                  decoration: const pw.BoxDecoration(color: PdfColors.grey300),
+                  children: <pw.Widget>[
+                    _pdfCell('Nº', bold: true),
+                    _pdfCell('NOME', bold: true),
+                    _pdfCell('DIAS', bold: true),
+                    _pdfCell('PG', bold: true),
+                  ],
+                ),
+                for (int g = 0; g < grupos.length; g++)
+                  for (int l = 0; l < grupos[g].length; l++)
+                    pw.TableRow(
+                      children: <pw.Widget>[
+                        _pdfCell((g * GradeConfig.eventoLinhas + l + 1).toString().padLeft(2, '0')),
+                        _pdfCell(grupos[g][l].nome),
+                        _pdfCell(_diasTexto(grupos[g][l].dias)),
+                        _pdfCell(_pgTexto(grupos[g][l].pg)),
+                      ],
+                    ),
+              ],
+            ),
+          ];
+        },
+      ),
+    );
+    await Printing.layoutPdf(onLayout: (PdfPageFormat format) => doc.save());
+  }
+
+  static Future<void> imprimirServicoCampo(
+    int ano,
+    int mes,
+    List<LinhaServicoCampo> linhas,
+  ) async {
+    final pw.Document doc = pw.Document();
+    doc.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4.landscape,
+        margin: const pw.EdgeInsets.all(20),
+        build: (pw.Context context) {
+          return <pw.Widget>[
+            pw.Center(
+              child: pw.Text(
+                'SERVIÇO DE CAMPO — ${nomesMeses[mes - 1]} $ano',
+                style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+              ),
+            ),
+            pw.SizedBox(height: 10),
+            pw.Table(
+              border: pw.TableBorder.all(color: PdfColors.black, width: 0.8),
+              children: <pw.TableRow>[
+                pw.TableRow(
+                  decoration: const pw.BoxDecoration(color: PdfColors.grey300),
+                  children: <pw.Widget>[
+                    _pdfCell('DIA', bold: true),
+                    _pdfCell('SEMANA', bold: true),
+                    _pdfCell('LOCAL', bold: true),
+                    _pdfCell('HORÁRIO', bold: true),
+                    _pdfCell('DIRIGENTE', bold: true),
+                  ],
+                ),
+                for (final LinhaServicoCampo l in linhas)
+                  pw.TableRow(
+                    children: <pw.Widget>[
+                      _pdfCell(l.dia.toString().padLeft(2, '0')),
+                      _pdfCell(_semanaDe(ano, mes, l.dia)),
+                      _pdfCell(l.local),
+                      _pdfCell(l.horario),
+                      _pdfCell(l.dirigente),
+                    ],
+                  ),
+              ],
+            ),
+          ];
+        },
+      ),
+    );
+    await Printing.layoutPdf(onLayout: (PdfPageFormat format) => doc.save());
+  }
+
+  static Future<void> imprimirDirigentes(List<List<String>> grade) async {
+    final pw.Document doc = pw.Document();
+    doc.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(20),
+        build: (pw.Context context) {
+          return <pw.Widget>[
+            pw.Center(
+              child: pw.Text(
+                'DIRIGENTES',
+                style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+              ),
+            ),
+            pw.SizedBox(height: 10),
+            pw.Table(
+              border: pw.TableBorder.all(color: PdfColors.black, width: 0.8),
+              children: <pw.TableRow>[
+                pw.TableRow(
+                  decoration: const pw.BoxDecoration(color: PdfColors.grey300),
+                  children: <pw.Widget>[
+                    _pdfCell('SEGUNDA A SEXTA', bold: true),
+                    _pdfCell('SÁBADO', bold: true),
+                    _pdfCell('DOMINGO', bold: true),
+                  ],
+                ),
+                for (final List<String> linha in grade)
+                  pw.TableRow(
+                    children: <pw.Widget>[
+                      for (final String celula in linha) _pdfCell(celula),
+                    ],
+                  ),
+              ],
+            ),
+          ];
+        },
+      ),
+    );
+    await Printing.layoutPdf(onLayout: (PdfPageFormat format) => doc.save());
+  }
+
+  static Future<void> imprimirTerritorios(List<Territorio> territorios) async {
+    final pw.Document doc = pw.Document();
+    doc.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(20),
+        build: (pw.Context context) {
+          return <pw.Widget>[
+            pw.Center(
+              child: pw.Text(
+                'RESUMO DOS TERRITÓRIOS',
+                style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+              ),
+            ),
+            pw.SizedBox(height: 4),
+            pw.Center(
+              child: pw.Text(
+                'Impresso em ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
+                style: const pw.TextStyle(fontSize: 9),
+              ),
+            ),
+            pw.SizedBox(height: 12),
+            pw.Table(
+              border: pw.TableBorder.all(color: PdfColors.black, width: 0.8),
+              children: <pw.TableRow>[
+                pw.TableRow(
+                  decoration: const pw.BoxDecoration(color: PdfColors.grey300),
+                  children: <pw.Widget>[
+                    _pdfCell('Nº', bold: true),
+                    _pdfCell('NOME', bold: true),
+                    _pdfCell('STATUS', bold: true),
+                    _pdfCell('DESIGNADO', bold: true),
+                    _pdfCell('DATA INICIAL', bold: true),
+                    _pdfCell('DATA FINAL', bold: true),
+                  ],
+                ),
+                for (final Territorio t in territorios)
+                  pw.TableRow(
+                    children: <pw.Widget>[
+                      _pdfCell('${t.numero}'),
+                      _pdfCell(t.nome),
+                      _pdfCell(t.status.rotulo),
+                      _pdfCell(t.designadoPara ?? '—'),
+                      _pdfCell(t.dataInicial.isEmpty ? '—' : t.dataInicial),
+                      _pdfCell(t.dataFinal.isEmpty ? '—' : t.dataFinal),
+                    ],
+                  ),
+              ],
+            ),
+          ];
+        },
+      ),
+    );
+    await Printing.layoutPdf(onLayout: (PdfPageFormat format) => doc.save());
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
 // DIALOG
 // ═══════════════════════════════════════════════════════════
 
@@ -1283,7 +1591,8 @@ Future<void> abrirDialogFotoMapa(
   WidgetRef ref,
   Territorio territorio,
 ) async {
-  final TextEditingController controller = TextEditingController(text: territorio.fotoMapaUrl ?? '');
+  final TextEditingController controller =
+      TextEditingController(text: territorio.fotoMapaUrl ?? '');
   final _ResultadoFoto? resultado = await showDialog<_ResultadoFoto>(
     context: context,
     builder: (BuildContext ctx) {
@@ -1379,9 +1688,7 @@ Future<void> abrirDialogFotoMapa(
       );
     },
   );
-
   if (resultado == null) return;
-
   if (resultado.remover) {
     ref.read(territoriosProvider.notifier).atualizarFotoMapa(territorio.numero, null);
   } else if (resultado.url != null && resultado.url!.isNotEmpty) {
@@ -1405,7 +1712,11 @@ Future<void> abrirDialogEditarCelula(
   );
   if (novoValor != null) {
     ref.read(territoriosProvider.notifier).atualizarCelulaDirigente(
-      territorio.numero, linha, coluna, novoValor);
+          territorio.numero,
+          linha,
+          coluna,
+          novoValor,
+        );
   }
 }
 
@@ -1467,7 +1778,7 @@ Future<void> abrirDialogEditarDirigente(
     ref.read(dirigentesProvider.notifier).atualizar(linha, coluna, novoValor.trim());
   }
 }
-// ═══════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════
 // APP + HOME
 // ═══════════════════════════════════════════════════════════
 
@@ -1702,7 +2013,16 @@ class TerritoriosScreen extends ConsumerWidget {
     final List<Territorio> territorios = ref.watch(territoriosProvider);
     return Scaffold(
       backgroundColor: AppColors.creme,
-      appBar: AppBar(title: const Text(AppStrings.territoriosTitulo)),
+      appBar: AppBar(
+        title: const Text(AppStrings.territoriosTitulo),
+        actions: [
+          IconButton(
+            tooltip: 'Imprimir resumo',
+            icon: const Icon(Icons.print),
+            onPressed: () => ImpressaoHelper.imprimirTerritorios(territorios),
+          ),
+        ],
+      ),
       body: Column(
         children: [
           _ResumoTerritorios(territorios: territorios),
@@ -2051,8 +2371,6 @@ class TerritorioDetalheScreen extends ConsumerWidget {
             const SizedBox(height: 24),
             _FotoMapaSecao(territorio: territorio),
             const SizedBox(height: 24),
-
-            // GRADES - Liberado para TODOS
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
@@ -2083,8 +2401,6 @@ class TerritorioDetalheScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 14),
-
-            // INICIAR / CONCLUIR - somente admin
             Row(
               children: [
                 Expanded(
@@ -2156,7 +2472,6 @@ class TerritorioDetalheScreen extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 20),
-
             _InfoLinha(
               icone: Icons.person_outline,
               rotulo: 'Designado para',
@@ -2363,7 +2678,7 @@ class _InfoLinha extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════
-// GRADES DO TERRITÓRIO - Liberado para TODOS
+// GRADES DO TERRITÓRIO - liberado para TODOS
 // ═══════════════════════════════════════════════════════════
 
 class GradesTerritorioScreen extends ConsumerWidget {
@@ -2693,7 +3008,7 @@ class _CelulaQuadra extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════
-// SERVIÇO DE CAMPO - somente admin
+// SERVIÇO DE CAMPO - somente admin edita
 // ═══════════════════════════════════════════════════════════
 
 class ServicoCampoScreen extends ConsumerWidget {
@@ -2721,6 +3036,11 @@ class ServicoCampoScreen extends ConsumerWidget {
               padding: EdgeInsets.only(right: 12),
               child: Icon(Icons.lock_outline, color: AppColors.douradoClaro),
             ),
+          IconButton(
+            tooltip: 'Imprimir mês',
+            icon: const Icon(Icons.print),
+            onPressed: () => ImpressaoHelper.imprimirServicoCampo(mesSel.ano, mesSel.mes, linhas),
+          ),
           IconButton(
             tooltip: AppStrings.redistribuirTooltip,
             icon: const Icon(Icons.refresh),
@@ -3031,7 +3351,7 @@ class _CelulaServico extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════
-// DIRIGENTE - somente admin
+// DIRIGENTE - somente admin edita
 // ═══════════════════════════════════════════════════════════
 
 class DirigenteScreen extends ConsumerWidget {
@@ -3052,6 +3372,11 @@ class DirigenteScreen extends ConsumerWidget {
               padding: EdgeInsets.only(right: 12),
               child: Icon(Icons.lock_outline, color: AppColors.douradoClaro),
             ),
+          IconButton(
+            tooltip: 'Imprimir dirigentes',
+            icon: const Icon(Icons.print),
+            onPressed: () => ImpressaoHelper.imprimirDirigentes(grade),
+          ),
           IconButton(
             tooltip: AppStrings.restaurarSimulacao,
             icon: const Icon(Icons.refresh),
@@ -3184,7 +3509,7 @@ class _CelulaDirigente extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════
-// EVENTOS - somente admin
+// EVENTOS - somente admin edita
 // ═══════════════════════════════════════════════════════════
 
 class EventosScreen extends ConsumerWidget {
@@ -3205,6 +3530,11 @@ class EventosScreen extends ConsumerWidget {
               padding: EdgeInsets.only(right: 12),
               child: Icon(Icons.lock_outline, color: AppColors.douradoClaro),
             ),
+          IconButton(
+            tooltip: 'Imprimir eventos',
+            icon: const Icon(Icons.print),
+            onPressed: () => ImpressaoHelper.imprimirEventos(grupos),
+          ),
           IconButton(
             tooltip: 'Limpar tudo',
             icon: const Icon(Icons.delete_outline),
@@ -3573,7 +3903,7 @@ class _CelulaPg extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════
-// S-13 - somente admin
+// S-13 - somente admin edita
 // ═══════════════════════════════════════════════════════════
 
 class S13Screen extends ConsumerWidget {
@@ -3594,6 +3924,11 @@ class S13Screen extends ConsumerWidget {
               padding: EdgeInsets.only(right: 12),
               child: Icon(Icons.lock_outline, color: AppColors.douradoClaro),
             ),
+          IconButton(
+            tooltip: 'Imprimir S-13',
+            icon: const Icon(Icons.print),
+            onPressed: () => ImpressaoHelper.imprimirS13(registro),
+          ),
           IconButton(
             tooltip: 'Limpar tudo',
             icon: const Icon(Icons.delete_outline),
@@ -4766,4 +5101,4 @@ class _AdminItem extends ConsumerWidget {
       ),
     );
   }
-}
+}                  
