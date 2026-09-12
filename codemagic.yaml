@@ -4,21 +4,41 @@ workflows:
     max_build_duration: 60
     instance_type: mac_mini_m2
     environment:
-      flutter: stable # Volta para o stable para suportar o novo método withValues
+      flutter: stable
       java: 17
     cache:
       cache_paths:
         - ~/.pub-cache
     scripts:
+      - name: Atualizar Flutter
+        script: flutter upgrade --force
+
       - name: Gerar pastas Android (Flutter Create)
         script: flutter create --platforms=android .
 
-      - name: Forçar Compilação SDK 35
+      - name: Forçar Compilação SDK 35 Globalmente
         script: |
-          # Atualiza o SDK do Android para a versão 35 (exigida pelo Flutter moderno)
-          perl -pi -e 's/compileSdk(Version)?\s*=?\s*\d+/compileSdk 35/g' android/app/build.gradle
-          perl -pi -e 's/targetSdk(Version)?\s*=?\s*\d+/targetSdk 35/g' android/app/build.gradle
-          echo "SDK do Android atualizado para 35 com sucesso."
+          # 1. Atualiza o app principal
+          perl -pi -e 's/(compileSdkVersion|compileSdk)\s*=?\s*\d+/$1 35/g' android/app/build.gradle
+          perl -pi -e 's/(targetSdkVersion|targetSdk)\s*=?\s*\d+/$1 35/g' android/app/build.gradle
+          
+          # 2. Força todos os subprojetos (como o 'printing') a usarem o SDK 35
+          cat >> android/build.gradle <<'EOF'
+
+          subprojects {
+              afterEvaluate { project ->
+                  if (project.hasProperty('android')) {
+                      project.android {
+                          compileSdkVersion 35
+                          defaultConfig {
+                              targetSdkVersion 35
+                          }
+                      }
+                  }
+              }
+          }
+          EOF
+          echo "SDK 35 forçado em todos os módulos com sucesso."
 
       - name: Get packages
         script: flutter pub get
@@ -47,3 +67,4 @@ workflows:
         notify:
           success: true
           failure: true
+  
