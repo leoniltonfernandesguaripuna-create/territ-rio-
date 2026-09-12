@@ -7,16 +7,24 @@ workflows:
       flutter: stable
       java: 17
       # groups:
-      #   - firebase  # Deixe desativado por enquanto para evitar erros
+      #   - firebase
     cache:
       cache_paths:
         - ~/.pub-cache
     scripts:
+      - name: Gerar pastas Android (Flutter Create)
+        script: flutter create --platforms=android .
+
       - name: Get packages
         script: flutter pub get
 
       - name: Criar google-services.json
         script: echo "$GOOGLE_SERVICES_JSON" > $CM_BUILD_DIR/android/app/google-services.json
+
+      - name: Aplicar plugin Google Services
+        script: |
+          perl -pi -e 's/apply plugin: '\''com.android.application'\''/apply plugin: '\''com.android.application'\''\napply plugin: '\''com.google.gms.google-services'\''/g' android/app/build.gradle
+          echo "Plugin Google Services aplicado com sucesso."
 
       - name: Build APK
         script: flutter build apk --release
