@@ -7,27 +7,30 @@ workflows:
       flutter: stable
       java: 17
       groups:
-        - firebase
+        - firebase # Se você criou um grupo no Codemagic com esse nome
     cache:
       cache_paths:
         - ~/.pub-cache
     scripts:
-      - name: Gerar projeto Flutter completo
-        script: flutter create --platforms=android --org com.leonilton .
       - name: Get packages
         script: flutter pub get
+        
       - name: Criar google-services.json
         script: echo "$GOOGLE_SERVICES_JSON" > $CM_BUILD_DIR/android/app/google-services.json
+        
       - name: Aplicar plugin Google Services
         script: |
-          sed -i '/apply plugin: .com.android.application./a apply plugin: "com.google.gms.google-services"' android/app/build.gradle
-          sed -i '/classpath "org.jetbrains.kotlin:kotlin-gradle-plugin"/a classpath "com.google.gms:google-services:4.4.0"' android/build.gradle
+          sed -i '/apply plugin: .com.android.application/a apply plugin: '"'"'com.google.gms.google-services'"'"'' android/app/build.gradle
+          
       - name: Analyze
         script: flutter analyze || true
+        
       - name: Build APK
         script: flutter build apk --release
+        
     artifacts:
       - build/app/outputs/flutter-apk/*.apk
+      
     publishing:
       email:
         recipients:
