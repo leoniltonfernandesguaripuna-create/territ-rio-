@@ -8,7 +8,6 @@
       java: 17
       groups:
         - firebase
-    cache:
   cache_paths:
     - ~/.gradle/caches
     - ~/.gradle/wrapper
