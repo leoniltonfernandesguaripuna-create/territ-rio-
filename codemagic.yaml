@@ -11,22 +11,7 @@ workflows:
     cache:
       cache_paths:
         - ~/.pub-cache
-    scripts:
-      - name: Get packages
-        script: flutter pub get
-        
-      - name: Criar google-services.json
-        script: echo "$GOOGLE_SERVICES_JSON" > $CM_BUILD_DIR/android/app/google-services.json
-        
-      - name: Aplicar plugin Google Services
-        script: |
-          sed -i '/apply plugin: .com.android.application/a apply plugin: '"'"'com.google.gms.google-services'"'"'' android/app/build.gradle
-          
-      - name: Analyze
-        script: flutter analyze || true
-        
-      - name: Build APK
-        script: flutter build apk --release
+     --release
         
     artifacts:
       - build/app/outputs/flutter-apk/*.apk
