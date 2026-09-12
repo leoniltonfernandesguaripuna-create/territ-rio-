@@ -6,7 +6,7 @@ workflows:
     
     environment:
       flutter: stable
-      java: 21  # <-- ATUALIZADO: Usar Java 21 para corresponder ao ambiente do Gradle
+      java: 21  # Obrigatório: O ambiente do Codemagic está usando Java 21
       groups:
         - google_credentials # Contém a variável GOOGLE_SERVICES_JSON
         # - keystore_credentials # Descomente se precisar de assinatura de release
@@ -34,12 +34,13 @@ workflows:
         script: |
           flutter pub get
 
-      - name: Atualizar versões do Gradle (Correção do erro de compatibilidade)
+      - name: Atualizar Gradle Wrapper para 8.7 (Correção definitiva)
         script: |
-          cd android
-          # Força a atualização para uma versão do Gradle compatível com Java 21 (>= 8.4)
-          ./gradlew wrapper --gradle-version 8.7
-          cd ..
+          # Este comando altera o arquivo de configuração do Gradle para a versão 8.7
+          # que é compatível com o Java 21
+          sed -i '' 's|distributionUrl=.*|distributionUrl=https\\://services.gradle.org/distributions/gradle-8.7-all.zip|' $CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties
+          echo "--- Conteúdo atualizado do gradle-wrapper.properties ---"
+          cat $CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties
 
       - name: Criar google-services.json
         script: |
@@ -67,4 +68,4 @@ workflows:
           - seu-email@exemplo.com # Substitua pelo seu e-mail
         notify:
           success: true
-          failure: true   
+          failure: true
