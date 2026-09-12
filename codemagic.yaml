@@ -1,4 +1,5 @@
-workflows:
+
+  workflows:
   android-workflow:
     name: Android Build
     max_build_duration: 60
@@ -21,7 +22,7 @@ workflows:
           perl -pi -e 's/com\.android\.application" version "[^"]*"/com.android.application" version "8.11.1"/g' android/settings.gradle
           perl -pi -e 's/com\.android\.library" version "[^"]*"/com.android.library" version "8.11.1"/g' android/settings.gradle
           perl -pi -e 's/org\.jetbrains\.kotlin\.android" version "[^"]*"/org.jetbrains.kotlin.android" version "2.1.0"/g' android/settings.gradle
-          perl -pi -e 's|distributionUrl=.*gradle-.*-all\.zip|distributionUrl=https\\://services.gradle.org/distributions/gradle-8.12-all.zip|g' android/gradle/wrapper/gradle-wrapper.properties
+          perl -pi -e 's|distributionUrl=.*gradle-.*-all\.zip|distributionUrl=https\\://services.gradle.org/distributions/gradle-8.13-all.zip|g' android/gradle/wrapper/gradle-wrapper.properties
       - name: Criar google-services.json
         script: echo "$GOOGLE_SERVICES_JSON" > $CM_BUILD_DIR/android/app/google-services.json
       - name: Aplicar plugin Google Services
