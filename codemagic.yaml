@@ -25,8 +25,15 @@ workflows:
           source: true
           
     scripts:
-      - name: Configurar local.properties
+      - name: Preparar projeto Android
         script: |
+          # Se a pasta android não existir, o Flutter a cria do zero
+          if [ ! -d "$CM_BUILD_DIR/android" ]; then
+            echo "Pasta android não encontrada. Gerando estrutura base..."
+            flutter create --platforms=android .
+          fi
+          # Cria a pasta do wrapper caso ela não exista
+          mkdir -p "$CM_BUILD_DIR/android/gradle/wrapper"
           echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/android/local.properties"
 
       - name: Get Flutter packages
@@ -35,6 +42,7 @@ workflows:
 
       - name: Forçar Gradle 8.7 no wrapper
         script: |
+          # Escreve o arquivo de configuração do Gradle na pasta criada
           echo "distributionBase=GRADLE_USER_HOME" > "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
           echo "distributionPath=wrapper/dists" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
           echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.7-all.zip" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
@@ -42,6 +50,8 @@ workflows:
           echo "validateDistributionUrl=true" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
           echo "zipStoreBase=GRADLE_USER_HOME" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
           echo "zipStorePath=wrapper/dists" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
+          echo "--- Conteúdo atualizado do gradle-wrapper.properties ---"
+          cat "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
 
       - name: Criar google-services.json
         script: |
@@ -69,4 +79,4 @@ workflows:
           - seu-email@exemplo.com 
         notify:
           success: true
-          failure: true
+          failure: true  
