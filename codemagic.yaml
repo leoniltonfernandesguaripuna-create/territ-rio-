@@ -1,18 +1,15 @@
- workflows:
+workflows:
   android-release:
     name: Flutter Android Release
     max_build_duration: 60
-    instance_type: mac_mini_m1 # Ou linux_x2, dependendo da sua necessidade
+    instance_type: mac_mini_m1
     
     environment:
       flutter: stable
-      java: 17 # O Gradle 8+ exige o Java 17
+      java: 21  # <-- ATUALIZADO: Usar Java 21 para corresponder ao ambiente do Gradle
       groups:
-        # Crie um grupo de variáveis de ambiente chamado "google_credentials" no painel do Codemagic
-        # e adicione a variável GOOGLE_SERVICES_JSON com o conteúdo do seu arquivo google-services.json
-        - google_credentials
-        # Se você usar assinatura de release (keystore), adicione as variáveis aqui também
-        # - keystore_credentials 
+        - google_credentials # Contém a variável GOOGLE_SERVICES_JSON
+        # - keystore_credentials # Descomente se precisar de assinatura de release
       
     cache:
       cache_paths:
@@ -37,16 +34,15 @@
         script: |
           flutter pub get
 
-      - name: Atualizar versões do Gradle e AGP (Correção do erro)
+      - name: Atualizar versões do Gradle (Correção do erro de compatibilidade)
         script: |
           cd android
-          # Força a versão do Gradle para 8.2.2 para evitar o erro de compilação
-          ./gradlew wrapper --gradle-version 8.2.2
+          # Força a atualização para uma versão do Gradle compatível com Java 21 (>= 8.4)
+          ./gradlew wrapper --gradle-version 8.7
           cd ..
 
       - name: Criar google-services.json
         script: |
-          # Verifica se a variável de ambiente existe e cria o arquivo
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             echo $GOOGLE_SERVICES_JSON > $CM_BUILD_DIR/android/app/google-services.json
             echo "google-services.json criado com sucesso."
@@ -71,4 +67,4 @@
           - seu-email@exemplo.com # Substitua pelo seu e-mail
         notify:
           success: true
-          failure: true
+          failure: true   
