@@ -21,12 +21,12 @@ if (flutterVersionName == null) {
     flutterVersionName = '1.0'
 }
 
-apply plugin: 'com.android.application'
+apply plugin: 'com.leonilton.territorio_app
 apply plugin: 'kotlin-android'
 apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
 android {
-    namespace "com.example.territorio_app"
+    namespace "com.leonilton.territorio_app
     compileSdkVersion flutter.compileSdkVersion
     ndkVersion flutter.ndkVersion
 
