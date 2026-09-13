@@ -1,49 +1,49 @@
 workflows:
-  android-release:
-    name: Flutter Android Release
+  android-workflow:
+    name: Android Build
     max_build_duration: 60
-    instance_type: mac_mini_m1
-    
+    instance_type: mac_mini_m2
     environment:
       flutter: stable
-      java: 21
+      java: 17
       groups:
-        - google_credentials 
-      
+        - firebase
+    cache:
+      cache_paths:
+        - ~/.pub-cache
     scripts:
-      - name: Preparar ambiente
+      - name: Gerar projeto Flutter completo
+        script: flutter create --platforms=android --org com.leonilton .
+      - name: Get packages
+        script: flutter pub get
+      - name: Atualizar versões do Gradle e AGP
         script: |
-          mkdir -p "$CM_BUILD_DIR/android/gradle/wrapper"
-          echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/android/local.properties"
-
-      - name: Get Flutter packages
-        script: |
-          flutter pub get
-
-      - name: Forçar Gradle 8.14
-        script: |
-          echo "distributionBase=GRADLE_USER_HOME" > "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
-          echo "distributionPath=wrapper/dists" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
-          echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.14-all.zip" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
-          echo "networkTimeout=10000" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
-          echo "validateDistributionUrl=true" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
-          echo "zipStoreBase=GRADLE_USER_HOME" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
-          echo "zipStorePath=wrapper/dists" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
-
-      - name: Adicionar flags de compatibilidade
-        script: |
-          echo "android.newDsl=false" >> "$CM_BUILD_DIR/android/gradle.properties"
-          echo "android.builtInKotlin=false" >> "$CM_BUILD_DIR/android/gradle.properties"
-
+          perl -pi -e 's/com\.android\.application" version "[^"]*"/com.android.application" version "8.11.1"/g' android/settings.gradle
+          perl -pi -e 's/com\.android\.library" version "[^"]*"/com.android.library" version "8.11.1"/g' android/settings.gradle
+          perl -pi -e 's/org\.jetbrains\.kotlin\.android" version "[^"]*"/org.jetbrains.kotlin.android" version "2.1.0"/g' android/settings.gradle
+          cat > android/gradle/wrapper/gradle-wrapper.properties << 'PROPS'
+          distributionBase=GRADLE_USER_HOME
+          distributionPath=wrapper/dists
+          zipStoreBase=GRADLE_USER_HOME
+          zipStorePath=wrapper/dists
+          distributionUrl=https\://services.gradle.org/distributions/gradle-8.13-all.zip
+          PROPS
       - name: Criar google-services.json
+        script: echo "$GOOGLE_SERVICES_JSON" > $CM_BUILD_DIR/android/app/google-services.json
+      - name: Aplicar plugin Google Services
         script: |
-          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
-            echo $GOOGLE_SERVICES_JSON > "$CM_BUILD_DIR/android/app/google-services.json"
-          fi
-
+          perl -pi -e 's/(apply plugin: .com\.android\.application.)/$1\napply plugin: "com.google.gms.google-services"/' android/app/build.gradle
+          perl -pi -e 's/(classpath "org\.jetbrains\.kotlin:kotlin-gradle-plugin")/$1\n        classpath "com.google.gms:google-services:4.4.0"/' android/build.gradle
+      - name: Analyze
+        script: flutter analyze || true
       - name: Build APK
-        script: |
-          flutter build apk --release
-
+        script: flutter build apk --release
     artifacts:
-      - build/app/outputs/flutter-apk/app-release.apk
+      - build/app/outputs/flutter-apk/*.apk
+    publishing:
+      email:
+        recipients:
+          - leoniltonfernandesguaripuna@gmail.com
+        notify:
+          success: true
+          failure: true
