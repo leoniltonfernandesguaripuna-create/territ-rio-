@@ -1,56 +1,20 @@
-plugins {
-    id "com.android.application"
-    id "kotlin-android"
-    id "dev.flutter.flutter-gradle-plugin"
-    id "com.google.gms.google-services"
-}
-
-def localProperties = new Properties()
-def localPropertiesFile = rootProject.file("local.properties")
-if (localPropertiesFile.exists()) {
-    localPropertiesFile.withReader("UTF-8") { reader ->
-        localProperties.load(reader)
-    }
-}
-
-def flutterVersionCode = localProperties.getProperty("flutter.versionCode")
-if (flutterVersionCode == null) {
-    flutterVersionCode = "1"
-}
-
-def flutterVersionName = localProperties.getProperty("flutter.versionName")
-if (flutterVersionName == null) {
-    flutterVersionName = "1.0"
-}
-
 android {
-    namespace "com.leonilton.territorio_app"
-    compileSdkVersion flutter.compileSdkVersion
+    namespace "com.leonilton.territorio_app" // Mantenha o namespace que já estava aqui
+    compileSdkVersion flutter.compileSdkVersion // Esta linha já existe no seu projeto
     ndkVersion flutter.ndkVersion
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
-        android {
-    // Adicione esta linha para corrigir o erro de compilação
-    compileSdk = flutter.compileSdkVersion
-
-    namespace = "com.example.seu_app" // Mantenha o seu namespace existente
-    // ... o restante do seu bloco android
-}
-        
     }
 
     kotlinOptions {
-        jvmTarget = "1.8"
-    }
-
-    sourceSets {
-        main.java.srcDirs += "src/main/kotlin"
+        jvmTarget = '1.8'
     }
 
     defaultConfig {
-        applicationId "com.leonilton.territorio_app"
+        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+        applicationId "com.leonilton.territorio_app" // Verifique se o seu applicationId é este mesmo
         minSdkVersion flutter.minSdkVersion
         targetSdkVersion flutter.targetSdkVersion
         versionCode flutterVersionCode.toInteger()
@@ -59,11 +23,9 @@ android {
 
     buildTypes {
         release {
+            // TODO: Add your own signing config for the release build.
+            // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig signingConfigs.debug
         }
     }
-}
-
-flutter {
-    source "../.."
 }
