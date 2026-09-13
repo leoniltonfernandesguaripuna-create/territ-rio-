@@ -10,20 +10,6 @@ workflows:
       groups:
         - google_credentials 
       
-    cache:
-      cache_paths:
-        - ~/.gradle/caches
-        - ~/.gradle/wrapper
-        - ~/.pub-cache
-        
-    triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: main
-          include: true
-          source: true
-          
     scripts:
       - name: Preparar ambiente
         script: |
@@ -34,7 +20,7 @@ workflows:
         script: |
           flutter pub get
 
-      - name: Forçar Gradle 8.14 no wrapper (Correção do erro)
+      - name: Forçar Gradle 8.14
         script: |
           echo "distributionBase=GRADLE_USER_HOME" > "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
           echo "distributionPath=wrapper/dists" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
@@ -44,7 +30,7 @@ workflows:
           echo "zipStoreBase=GRADLE_USER_HOME" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
           echo "zipStorePath=wrapper/dists" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
 
-      - name: Adicionar flags de compatibilidade ao gradle.properties
+      - name: Adicionar flags de compatibilidade
         script: |
           echo "android.newDsl=false" >> "$CM_BUILD_DIR/android/gradle.properties"
           echo "android.builtInKotlin=false" >> "$CM_BUILD_DIR/android/gradle.properties"
@@ -53,8 +39,6 @@ workflows:
         script: |
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             echo $GOOGLE_SERVICES_JSON > "$CM_BUILD_DIR/android/app/google-services.json"
-          else
-            echo "Aviso: GOOGLE_SERVICES_JSON não está definido."
           fi
 
       - name: Build APK
