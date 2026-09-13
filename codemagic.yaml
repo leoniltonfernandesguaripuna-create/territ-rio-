@@ -17,18 +17,26 @@ workflows:
       - name: Get packages
         script: flutter pub get
       - name: Atualizar versões do Gradle e AGP
-        script: |
-          perl -pi -e 's/com\.android\.application" version "[^"]*"/com.android.application" version "8.11.1"/g' android/settings.gradle
+        script: >
+          perl -pi -e 's/com\.android\.application" version
+          "[^"]*"/com.android.application" version "8.11.1"/g'
+          android/settings.gradle
+
           perl -pi -e 's/com\.android\.library" version "[^"]*"/com.android.library" version "8.11.1"/g' android/settings.gradle
+
           perl -pi -e 's/org\.jetbrains\.kotlin\.android" version "[^"]*"/org.jetbrains.kotlin.android" version "2.1.0"/g' android/settings.gradle
+
           perl -pi -e 's|^distributionUrl=.*|distributionUrl=https\\://services.gradle.org/distributions/gradle-8.13-all.zip|g' android/gradle/wrapper/gradle-wrapper.properties
       - name: Debug - Mostrar wrapper do Gradle
         script: cat android/gradle/wrapper/gradle-wrapper.properties
       - name: Criar google-services.json
-        script: echo "$GOOGLE_SERVICES_JSON" > $CM_BUILD_DIR/android/app/google-services.json
+        script: echo "$GOOGLE_SERVICES_JSON" >
+          $CM_BUILD_DIR/android/app/google-services.json
       - name: Aplicar plugin Google Services
-        script: |
-          perl -pi -e 's/(apply plugin: .com\.android\.application.)/$1\napply plugin: "com.google.gms.google-services"/' android/app/build.gradle
+        script: >
+          perl -pi -e 's/(apply plugin: .com\.android\.application.)/$1\napply
+          plugin: "com.google.gms.google-services"/' android/app/build.gradle
+
           perl -pi -e 's/(classpath "org\.jetbrains\.kotlin:kotlin-gradle-plugin")/$1\n        classpath "com.google.gms:google-services:4.4.0"/' android/build.gradle
       - name: Analyze
         script: flutter analyze || true
@@ -43,3 +51,5 @@ workflows:
         notify:
           success: true
           failure: true
+
+  
