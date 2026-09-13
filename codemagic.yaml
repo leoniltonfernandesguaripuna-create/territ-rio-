@@ -25,12 +25,8 @@ workflows:
           source: true
           
     scripts:
-      - name: Verificar estrutura do Android
+      - name: Preparar ambiente
         script: |
-          if [ ! -d "$CM_BUILD_DIR/android" ]; then
-            echo "ERRO CRÍTICO: A pasta 'android' não foi encontrada no seu repositório!"
-            exit 1
-          fi
           mkdir -p "$CM_BUILD_DIR/android/gradle/wrapper"
           echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/android/local.properties"
 
@@ -47,17 +43,6 @@ workflows:
           echo "validateDistributionUrl=true" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
           echo "zipStoreBase=GRADLE_USER_HOME" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
           echo "zipStorePath=wrapper/dists" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
-
-      - name: Atualizar Android Gradle Plugin (AGP)
-        script: |
-          sed -i '' 's/com.android.application" version "[^"]*"/com.android.application" version "8.11.1"/' "$CM_BUILD_DIR/android/settings.gradle"
-
-      - name: Atualizar Kotlin Gradle Plugin (KGP)
-        script: |
-          # Atualiza a versão do Kotlin para 2.2.20, exigida pelo Flutter
-          sed -i '' 's/id "org.jetbrains.kotlin.android" version "[^"]*"/id "org.jetbrains.kotlin.android" version "2.2.20"/' "$CM_BUILD_DIR/android/settings.gradle"
-          echo "--- Conteúdo do settings.gradle após atualizações ---"
-          cat "$CM_BUILD_DIR/android/settings.gradle"
 
       - name: Adicionar flags de compatibilidade ao gradle.properties
         script: |
