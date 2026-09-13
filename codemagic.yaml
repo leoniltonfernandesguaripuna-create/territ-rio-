@@ -34,7 +34,7 @@ workflows:
         script: |
           flutter pub get
 
-      - name: Forçar Gradle 8.14 no wrapper
+      - name: Forçar Gradle 8.14 no wrapper (Correção do erro)
         script: |
           echo "distributionBase=GRADLE_USER_HOME" > "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
           echo "distributionPath=wrapper/dists" >> "$CM_BUILD_DIR/android/gradle/wrapper/gradle-wrapper.properties"
@@ -60,18 +60,6 @@ workflows:
       - name: Build APK
         script: |
           flutter build apk --release
-          - name: Adicionar flags de compatibilidade
-  script: |
-    echo "android.newDsl=false" >> "$CM_BUILD_DIR/android/gradle.properties"
-    echo "android.builtInKotlin=false" >> "$CM_BUILD_DIR/android/gradle.properties"
 
     artifacts:
       - build/app/outputs/flutter-apk/app-release.apk
-
-    publishing:
-      email:
-        recipients:
-          - seu-email@exemplo.com 
-        notify:
-          success: true
-          failure: true
