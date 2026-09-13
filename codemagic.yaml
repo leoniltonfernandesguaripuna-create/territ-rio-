@@ -60,6 +60,10 @@ workflows:
       - name: Build APK
         script: |
           flutter build apk --release
+          - name: Adicionar flags de compatibilidade
+  script: |
+    echo "android.newDsl=false" >> "$CM_BUILD_DIR/android/gradle.properties"
+    echo "android.builtInKotlin=false" >> "$CM_BUILD_DIR/android/gradle.properties"
 
     artifacts:
       - build/app/outputs/flutter-apk/app-release.apk
