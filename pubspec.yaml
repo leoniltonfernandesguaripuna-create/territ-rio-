@@ -11,21 +11,10 @@ dependencies:
   flutter:
     sdk: flutter
   image_picker: ^1.0.4
-  
-dependencies:
-  flutter:
-    sdk: flutter
-  image_picker: ^1.0.4
-  shared_preferences: ^2.2.2 # 🌟 NOVO
-  
-  dependencies:
-  flutter:
-    sdk: flutter
-  image_picker: ^1.0.4
   shared_preferences: ^2.2.2
-  printing: ^5.11.0  # 🌟 NOVO
-  pdf: ^3.10.7       # 🌟 NOVO (para gerar o PDF)
-  
+  printing: ^5.11.0
+  pdf: ^3.10.7
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
