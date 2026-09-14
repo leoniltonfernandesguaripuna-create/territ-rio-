@@ -1723,7 +1723,7 @@ class _CalendarStripState extends State<CalendarStrip> {
                 children: [
                   Positioned(top: topMarcador, child: IgnorePointer(child: Container(
                     width: _totalCellWidth + 12, height: _alturaMarcador,
-                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), boxShadow: [BoxShadow(color: Colors.black.withValues(0.55), offset: const Offset(5, 5), blurRadius: 7), BoxShadow(color: Colors.white.withValues(alpha: 0.95), offset: const Offset(-4, -4), blurRadius: 7)]),
+                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.55), offset: const Offset(5, 5), blurRadius: 7), BoxShadow(color: Colors.white.withValues(alpha: 0.95), offset: const Offset(-4, -4), blurRadius: 7)]),
                   ))),
                   ListView.builder(
                     key: ValueKey('$_anoExibido-$_mesExibido'),
