@@ -1,47 +1,76 @@
 workflows:
   android-workflow:
-    name: Android Build
+    name: Território App - Android Build
     max_build_duration: 60
     instance_type: mac_mini_m2
     environment:
       flutter: stable
+      java: 17
+
+    cache:
+      cache_paths:
+        - $HOME/.pub-cache
+
+    triggering:
+      events:
+        - push
+        - pull_request
+      branch_patterns:
+        - pattern: main
+          include: true
+
     scripts:
+      # 1. Gerar a estrutura nativa (android/ e ios/) automaticamente
       - name: Gerar estrutura do projeto Flutter (pastas Android e iOS)
         script: |
           flutter create . --org com.territorioapp --project-name territorio_app
 
+      # 2. Alterar o nome visível do app no Android para "Território App"
       - name: Configurar nome do aplicativo (Android)
         script: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
-          sed -i 's/android:label="territorio_app"/android:label="Território App"/g' "$MANIFEST"
-          echo "Nome do app Android configurado!"
+          sed -i 's|android:label="territorio_app"|android:label="Território App"|g' "$MANIFEST"
+          echo "Nome do app Android configurado para: Território App"
 
+      # 3. Alterar o nome visível do app no iOS para "Território App"
       - name: Configurar nome do aplicativo (iOS)
         script: |
           PLIST="ios/Runner/Info.plist"
           sed -i 's|<string>territorio_app</string>|<string>Território App</string>|g' "$PLIST"
-          echo "Nome do app iOS configurado!"
+          echo "Nome do app iOS configurado para: Território App"
 
+      # 4. Adicionar permissões de câmera e galeria no Android
       - name: Adicionar permissões de Câmera e Galeria no Android
         script: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           sed -i '/<application/i\    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />\n    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />\n    <uses-permission android:name="android.permission.CAMERA" />' "$MANIFEST"
           echo "Permissões Android configuradas!"
 
+      # 5. Adicionar permissões de câmera e galeria no iOS
       - name: Adicionar permissões de Câmera e Galeria no iOS
         script: |
           PLIST="ios/Runner/Info.plist"
           sed -i 's|<key>CFBundleName</key>|<key>NSPhotoLibraryUsageDescription</key>\n\t<string>Precisamos de acesso a sua galeria para adicionar fotos aos territórios.</string>\n\t<key>NSCameraUsageDescription</key>\n\t<string>Precisamos de acesso a camera para tirar fotos.</string>\n\t<key>CFBundleName</key>|' "$PLIST"
           echo "Permissões iOS configuradas!"
 
+      # 6. Baixar todas as dependências do pubspec.yaml
       - name: Instalar dependências do Flutter
         script: |
           flutter pub get
 
+      # 7. Compilar o APK em modo release
       - name: Compilar o APK (Release)
         script: |
           flutter build apk --release
 
     artifacts:
       - build/app/outputs/flutter-apk/app-release.apk
+
+    publishing:
+      email:
+        recipients:
+          - seu-email@exemplo.com
+        notify:
+          success: true
+          failure: true
   
