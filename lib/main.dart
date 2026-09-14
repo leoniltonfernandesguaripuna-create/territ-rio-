@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
 
 void main() {
   runApp(const TerritorioApp());
@@ -46,10 +43,9 @@ class AuthManager {
   static bool get isLogado => adminLogado != null;
   static bool get isAdminPrincipal => adminLogado?.isPrincipal ?? false;
   static bool get podeEditarTudo => isLogado && !isAdminPrincipal;
-  static bool get podeAdicionarMais => isAdminPrincipal && admins.length < limiteMaximo;
 
   static String? cadastrarPrincipal(String nome, String senha) {
-    if (temAdminPrincipal) return 'Já existe um administrador principal cadastrado';
+    if (temAdminPrincipal) return 'Já existe um administrador principal';
     if (nome.trim().isEmpty) return 'Digite um nome válido';
     if (senha != senhaPrincipal) return 'Senha incorreta! A senha é: $senhaPrincipal';
     admins.add(Admin(nome: nome.trim(), senha: senha, isPrincipal: true));
@@ -63,7 +59,7 @@ class AuthManager {
     if (admins.length >= limiteMaximo) return 'Limite de $limiteMaximo administradores atingido';
     if (nome.trim().isEmpty) return 'Digite um nome válido';
     if (senha.isEmpty) return 'Digite uma senha';
-    if (admins.any((a) => a.nome.toLowerCase() == nome.trim().toLowerCase())) return 'Já existe um administrador com esse nome';
+    if (admins.any((a) => a.nome.toLowerCase() == nome.trim().toLowerCase())) return 'Já existe esse nome';
     admins.add(Admin(nome: nome.trim(), senha: senha, isPrincipal: false));
     SalvamentoManager.marcarAlteracao();
     return null;
@@ -87,11 +83,12 @@ class AuthManager {
     return null;
   }
 
-  static void logout() {
-    adminLogado = null;
-  }
+  static void logout() => adminLogado = null;
 }
 
+// ==========================================
+// BANNER DE PERMISSÃO
+// ==========================================
 Widget buildBannerPermissao() {
   if (AuthManager.podeEditarTudo) return const SizedBox.shrink();
 
@@ -113,7 +110,7 @@ Widget buildBannerPermissao() {
     margin: const EdgeInsets.only(bottom: 12),
     padding: const EdgeInsets.all(10),
     decoration: BoxDecoration(
-      color: cor.withValues(alpha: 0.1),
+      color: cor.withOpacity(0.1),
       borderRadius: BorderRadius.circular(10),
       border: Border.all(color: cor, width: 2),
     ),
@@ -132,6 +129,9 @@ Widget buildBannerPermissao() {
   );
 }
 
+// ==========================================
+// HELPER: TextField com permissão
+// ==========================================
 Widget campoEditavel({
   required TextEditingController controller,
   TextAlign textAlign = TextAlign.center,
@@ -143,9 +143,6 @@ Widget campoEditavel({
   bool isDense = true,
   double? fontSize,
   InputBorder border = InputBorder.none,
-  String? labelText,
-  TextStyle? labelStyle,
-  Widget? prefixIcon,
   bool? editavelOverride,
 }) {
   final editavel = editavelOverride ?? AuthManager.podeEditarTudo;
@@ -162,11 +159,8 @@ Widget campoEditavel({
       isDense: isDense,
       hintText: hintText,
       hintStyle: hintStyle,
-      labelText: labelText,
-      labelStyle: labelStyle,
-      prefixIcon: prefixIcon,
       filled: !editavel,
-      fillColor: !editavel ? Colors.grey[200]?.withValues(alpha: 0.5) : null,
+      fillColor: !editavel ? Colors.grey[200]?.withOpacity(0.5) : null,
     ),
   );
 }
@@ -196,7 +190,7 @@ class DadosCompartilhados {
 }
 
 // ==========================================
-// ESTADO COMPARTILHADO DO S.13
+// ESTADO DO S.13
 // ==========================================
 class BlocoS13 {
   String nomeIrmao;
@@ -235,18 +229,18 @@ class Territorio {
 }
 
 List<BoxShadow> get altoRelevo => [
-  BoxShadow(color: Colors.black.withValues(alpha: 0.35), offset: const Offset(4, 4), blurRadius: 4),
-  BoxShadow(color: Colors.white.withValues(alpha: 0.9), offset: const Offset(-3, -3), blurRadius: 4),
+  BoxShadow(color: Colors.black.withOpacity(0.35), offset: const Offset(4, 4), blurRadius: 4),
+  BoxShadow(color: Colors.white.withOpacity(0.9), offset: const Offset(-3, -3), blurRadius: 4),
 ];
 
 List<BoxShadow> get relevoPequeno => [
-  BoxShadow(color: Colors.black.withValues(alpha: 0.35), offset: const Offset(2, 2), blurRadius: 3),
-  BoxShadow(color: Colors.white.withValues(alpha: 0.9), offset: const Offset(-2, -2), blurRadius: 3),
+  BoxShadow(color: Colors.black.withOpacity(0.35), offset: const Offset(2, 2), blurRadius: 3),
+  BoxShadow(color: Colors.white.withOpacity(0.9), offset: const Offset(-2, -2), blurRadius: 3),
 ];
 
 class SalvamentoManager {
   static bool temAlteracoesNaoSalvas = false;
-  static void marcarAlteracao() { temAlteracoesNaoSalvas = true; }
+  static void marcarAlteracao() => temAlteracoesNaoSalvas = true;
 
   static Future<bool> salvarTudo(BuildContext context) async {
     temAlteracoesNaoSalvas = false;
@@ -281,63 +275,56 @@ Widget buildBotaoSalvar(BuildContext context) {
   );
 }
 
+// ==========================================
+// SIMULAÇÃO DE IMPRESSÃO
+// ==========================================
 Future<void> imprimirS13(BuildContext context) async {
-  try {
-    final pdf = pw.Document();
-    final headers = ['Terr.\nn.º', 'Última\ndata', 'Designado 1', 'Datas 1', 'Designado 2', 'Datas 2', 'Designado 3', 'Datas 3', 'Designado 4', 'Datas 4'];
-    final List<List<String>> linhas = [];
-    for (int i = 1; i <= 20; i++) {
-      final blocos = RegistroS13.registros[i] ?? [];
-      final linha = <String>[(i).toString().padLeft(2, '0'), ''];
-      for (int b = 0; b < 4; b++) {
-        if (b < blocos.length) {
-          linha.add(blocos[b].nomeIrmao.isEmpty ? '-' : blocos[b].nomeIrmao);
-          final design = blocos[b].dataDesignacao.isEmpty ? '-' : blocos[b].dataDesignacao;
-          final concl = blocos[b].dataConclusao.isEmpty ? '-' : blocos[b].dataConclusao;
-          linha.add('$design\n$concl');
-        } else {
-          linha.add('-');
-          linha.add('-');
-        }
-      }
-      linhas.add(linha);
-    }
-    pdf.addPage(
-      pw.Page(
-        pageFormat: PdfPageFormat.a4.landscape,
-        margin: const pw.EdgeInsets.all(20),
-        build: (pw.Context context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Center(child: pw.Text('REGISTRO DE DESIGNAÇÃO DE TERRITÓRIO', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold))),
-              pw.SizedBox(height: 12),
-              pw.Text('Ano de Serviço: ${RegistroS13.anoServico.isEmpty ? "___________" : RegistroS13.anoServico}', style: const pw.TextStyle(fontSize: 12)),
-              pw.SizedBox(height: 12),
-              pw.Table.fromTextArray(
-                headers: headers, data: linhas,
-                border: pw.TableBorder.all(width: 0.5),
-                headerStyle: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-                cellStyle: const pw.TextStyle(fontSize: 7),
-                headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
-                cellAlignment: pw.Alignment.center, headerAlignment: pw.Alignment.center,
-                cellHeight: 22, headerHeight: 30,
-              ),
-              pw.SizedBox(height: 12),
-              pw.Text('*Ao iniciar uma nova folha, use esta coluna para registrar a data em que cada território foi concluído pela última vez.', style: const pw.TextStyle(fontSize: 7)),
-              pw.SizedBox(height: 4),
-              pw.Text('S-13-T 01/22', style: const pw.TextStyle(fontSize: 7)),
-            ],
-          );
-        },
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Row(children: [
+        const Icon(Icons.print, color: Color(0xFF1A365D), size: 28),
+        const SizedBox(width: 8),
+        const Text('Impressão', style: TextStyle(color: Color(0xFF1A365D), fontWeight: FontWeight.bold)),
+      ]),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('No celular real, essa ação abriria a tela de impressão do sistema:', style: TextStyle(fontSize: 14)),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.grey[300]!),
+            ),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [Icon(Icons.phone_android, size: 18, color: Color(0xFF1A365D)), SizedBox(width: 6), Text('Imprimir em impressora Wi-Fi', style: TextStyle(fontSize: 13))]),
+                SizedBox(height: 8),
+                Row(children: [Icon(Icons.picture_as_pdf, size: 18, color: Colors.red), SizedBox(width: 6), Text('Salvar como PDF', style: TextStyle(fontSize: 13))]),
+                SizedBox(height: 8),
+                Row(children: [Icon(Icons.share, size: 18, color: Colors.green), SizedBox(width: 6), Text('Compartilhar (WhatsApp / E-mail)', style: TextStyle(fontSize: 13))]),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text('Ano de serviço: ${RegistroS13.anoServico.isEmpty ? "(não definido)" : RegistroS13.anoServico}',
+              style: const TextStyle(fontSize: 13, color: Color(0xFF1A365D), fontWeight: FontWeight.bold)),
+        ],
       ),
-    );
-    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save(), name: 'S.13 - ${RegistroS13.anoServico}');
-  } catch (e) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erro ao imprimir: $e')));
-    }
-  }
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Fechar', style: TextStyle(color: Color(0xFF1A365D), fontWeight: FontWeight.bold)),
+        ),
+      ],
+    ),
+  );
 }
 
 // ==========================================
@@ -401,8 +388,6 @@ class HomeScreen extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16), onTap: onTap,
-          splashColor: const Color(0xFF1A365D).withValues(alpha: 0.2),
-          highlightColor: Colors.white.withValues(alpha: 0.1),
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
             Icon(icon, size: 50, color: const Color(0xFF1A365D)),
             const SizedBox(height: 12),
@@ -501,9 +486,9 @@ class _AdminScreenState extends State<AdminScreen> {
         width: double.infinity, padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(color: Colors.orange[100], borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.orange, width: 3)),
         child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28), SizedBox(width: 8), Text('Primeiro Acesso', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black87))]),
+          Row(children: [Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28), SizedBox(width: 8), Text('Primeiro Acesso', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18))]),
           SizedBox(height: 8),
-          Text('Cadastre o administrador principal.\nA senha inicial é: 1234', style: TextStyle(fontSize: 14, color: Colors.black87)),
+          Text('Cadastre o administrador principal.\nA senha inicial é: 1234', style: TextStyle(fontSize: 14)),
         ]),
       ),
       const SizedBox(height: 24),
@@ -524,7 +509,7 @@ class _AdminScreenState extends State<AdminScreen> {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Row(children: [Icon(Icons.login, color: Color(0xFF1A365D), size: 28), SizedBox(width: 8), Text('Login de Administrador', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Color(0xFF1A365D)))]),
       const SizedBox(height: 8),
-      const Text('Digite seu nome e senha para acessar o painel.', style: TextStyle(fontSize: 14, color: Colors.black54)),
+      const Text('Digite seu nome e senha.', style: TextStyle(fontSize: 14, color: Colors.black54)),
       const SizedBox(height: 24),
       _buildCampoTexto(controller: _nomeController, label: 'Nome', icon: Icons.person),
       const SizedBox(height: 16),
@@ -552,7 +537,7 @@ class _AdminScreenState extends State<AdminScreen> {
             Text(logado.nome, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
             Text(logado.isPrincipal ? 'Administrador Principal' : 'Administrador', style: const TextStyle(color: Colors.white70, fontSize: 12)),
           ])),
-          IconButton(tooltip: 'Sair', icon: const Icon(Icons.logout, color: Colors.white, size: 26), onPressed: _logout),
+          IconButton(icon: const Icon(Icons.logout, color: Colors.white), onPressed: _logout),
         ]),
       ),
       const SizedBox(height: 24),
@@ -566,7 +551,20 @@ class _AdminScreenState extends State<AdminScreen> {
         ),
       ]),
       const SizedBox(height: 12),
-      ...AuthManager.admins.map((a) => _buildCartaoAdmin(a)),
+      ...AuthManager.admins.map((a) => Container(
+        margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: a.isPrincipal ? Colors.orange : const Color(0xFF1A365D), width: 3), boxShadow: relevoPequeno),
+        child: Row(children: [
+          CircleAvatar(radius: 22, backgroundColor: a.isPrincipal ? Colors.orange[100] : Colors.grey[200], child: Icon(a.isPrincipal ? Icons.star : Icons.verified_user, color: a.isPrincipal ? Colors.orange[800] : const Color(0xFF1A365D))),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(a.nome, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1A365D))),
+            Text(a.isPrincipal ? 'Principal' : 'Administrador', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+          ])),
+          if (AuthManager.isAdminPrincipal && !a.isPrincipal)
+            IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red), onPressed: () => _removerAdmin(a.nome)),
+        ]),
+      )),
       const SizedBox(height: 16),
       if (AuthManager.isAdminPrincipal && AuthManager.admins.length < AuthManager.limiteMaximo) ...[
         const Divider(thickness: 2),
@@ -585,24 +583,6 @@ class _AdminScreenState extends State<AdminScreen> {
         )),
       ],
     ]);
-  }
-
-  Widget _buildCartaoAdmin(Admin admin) {
-    final isLogado = AuthManager.adminLogado?.nome == admin.nome;
-    final podeRemover = AuthManager.isAdminPrincipal && !admin.isPrincipal;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: admin.isPrincipal ? Colors.orange : const Color(0xFF1A365D), width: 3), boxShadow: relevoPequeno),
-      child: Row(children: [
-        CircleAvatar(radius: 22, backgroundColor: admin.isPrincipal ? Colors.orange[100] : Colors.grey[200], child: Icon(admin.isPrincipal ? Icons.star : Icons.verified_user, color: admin.isPrincipal ? Colors.orange[800] : const Color(0xFF1A365D))),
-        const SizedBox(width: 12),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(admin.nome, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1A365D))),
-          Text(admin.isPrincipal ? 'Principal' : 'Administrador', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
-        ])),
-        if (podeRemover) IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red), onPressed: () => _removerAdmin(admin.nome)),
-      ]),
-    );
   }
 
   Widget _buildCampoTexto({required TextEditingController controller, required String label, required IconData icon, bool obscure = false}) {
@@ -631,10 +611,7 @@ class EventosScreen extends StatefulWidget {
 }
 
 class _EventosScreenState extends State<EventosScreen> {
-  static const int totalLinhas = 20;
-  static const int totalGrupos = 5;
-  static const int totalNumeros = 80;
-
+  static const int totalLinhas = 20, totalGrupos = 5, totalNumeros = 80;
   late List<List<TextEditingController>> nomeControllers;
   late List<List<bool>> pgPego;
   late List<List<List<bool>>> diasMarcados;
@@ -667,81 +644,58 @@ class _EventosScreenState extends State<EventosScreen> {
     return Container(width: width, height: height, decoration: BoxDecoration(color: cor, border: const Border(right: BorderSide(color: corBorda, width: 1), bottom: BorderSide(color: corBorda, width: 1))), child: Center(child: child));
   }
 
-  Widget _cabecalho(String texto, double width) => _container(width: width, height: hHeader, cor: corAzul, child: Text(texto, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white)));
-  Widget _celulaNumero(int linha, int grupo) => _container(width: wN, height: hLinha, cor: corCinza, child: Text(_numeroDaCelula(linha, grupo), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: corAzul)));
-
-  Widget _celulaPG(int linha, int grupo) {
-    final pego = pgPego[linha][grupo];
-    final editavel = AuthManager.podeEditarTudo;
-    return Container(
-      width: wPG, height: hLinha,
-      decoration: const BoxDecoration(color: Colors.white, border: Border(right: BorderSide(color: corBorda, width: 1), bottom: BorderSide(color: corBorda, width: 1))),
-      child: Center(child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-        decoration: BoxDecoration(color: pego ? Colors.green[400] : corCinza, borderRadius: BorderRadius.circular(6), border: Border.all(color: corAzul, width: 2), boxShadow: relevoPequeno),
-        child: Material(color: Colors.transparent, child: InkWell(
-          borderRadius: BorderRadius.circular(6),
-          onTap: editavel ? () { setState(() => pgPego[linha][grupo] = !pgPego[linha][grupo]); SalvamentoManager.marcarAlteracao(); } : null,
-          child: Center(child: Text(pego ? 'OK' : 'PG', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: pego ? Colors.white : corAzul))),
-        )),
-      )),
-    );
-  }
-
-  Widget _celulaNome(int linha, int grupo) => Container(
-    width: wNome, height: hLinha,
-    decoration: const BoxDecoration(color: Colors.white, border: Border(right: BorderSide(color: corBorda, width: 1), bottom: BorderSide(color: corBorda, width: 1))),
-    padding: const EdgeInsets.symmetric(horizontal: 6),
-    child: campoEditavel(controller: nomeControllers[linha][grupo], textAlign: TextAlign.left, fontSize: 14, hintText: 'Nome...', contentPadding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4), onChanged: () => SalvamentoManager.marcarAlteracao()),
-  );
-
-  Widget _celulaDias(int linha, int grupo) {
-    final marcados = diasMarcados[linha][grupo];
-    final editavel = AuthManager.podeEditarTudo;
-    const nomes = ['SEX', 'SÁB', 'DOM'];
-    return Container(
-      width: wDias, height: hLinha,
-      decoration: const BoxDecoration(color: Colors.white, border: Border(right: BorderSide(color: corBorda, width: 1), bottom: BorderSide(color: corBorda, width: 1))),
-      padding: const EdgeInsets.all(3),
-      child: Row(children: List.generate(3, (i) {
-        final ativo = marcados[i];
-        return Expanded(child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 3),
-          decoration: BoxDecoration(color: ativo ? corAzul : corCinza, borderRadius: BorderRadius.circular(5), border: Border.all(color: corAzul, width: 2), boxShadow: relevoPequeno),
-          child: Material(color: Colors.transparent, child: InkWell(
-            borderRadius: BorderRadius.circular(5),
-            onTap: editavel ? () { setState(() => diasMarcados[linha][grupo][i] = !diasMarcados[linha][grupo][i]); SalvamentoManager.marcarAlteracao(); } : null,
-            child: Center(child: Text(nomes[i], style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: ativo ? Colors.white : corAzul))),
-          )),
-        ));
-      })),
-    );
-  }
-
-  Widget _grupoCabecalho() => Row(children: [_cabecalho('N*', wN), _cabecalho('PG', wPG), _cabecalho('NOME', wNome), _cabecalho('DIAS', wDias)]);
-  Widget _grupoLinha(int linha, int grupo) => Row(children: [_celulaNumero(linha, grupo), _celulaPG(linha, grupo), _celulaNome(linha, grupo), _celulaDias(linha, grupo)]);
+  Widget _grupoCabecalho() => Row(children: [
+    _container(width: wN, height: hHeader, cor: corAzul, child: const Text('N*', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
+    _container(width: wPG, height: hHeader, cor: corAzul, child: const Text('PG', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
+    _container(width: wNome, height: hHeader, cor: corAzul, child: const Text('NOME', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
+    _container(width: wDias, height: hHeader, cor: corAzul, child: const Text('DIAS
+  // Continuação da classe _EventosScreenState
+  Widget _grupoCabecalho() => Row(children: [
+    _cabecalho('N*', wN), 
+    _cabecalho('PG', wPG), 
+    _cabecalho('NOME', wNome), 
+    _cabecalho('DIAS', wDias)
+  ]);
+  
+  Widget _grupoLinha(int linha, int grupo) => Row(children: [
+    _celulaNumero(linha, grupo), 
+    _celulaPG(linha, grupo), 
+    _celulaNome(linha, grupo), 
+    _celulaDias(linha, grupo)
+  ]);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('EVENTOS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, letterSpacing: 1.2)),
-        backgroundColor: corAzul, iconTheme: const IconThemeData(color: Colors.white), centerTitle: true,
+        backgroundColor: corAzul, 
+        iconTheme: const IconThemeData(color: Colors.white), 
+        centerTitle: true,
         actions: [buildBotaoSalvar(context)],
       ),
-      body: SingleChildScrollView(padding: const EdgeInsets.all(12.0), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        buildBannerPermissao(),
-        const Center(child: Text('REGISTRO DE EVENTOS', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: corAzul))),
-        const SizedBox(height: 12),
-        SingleChildScrollView(scrollDirection: Axis.horizontal, child: Container(
-          decoration: BoxDecoration(border: Border.all(color: corBorda, width: 2), color: Colors.white),
-          child: Column(children: [
-            Row(children: List.generate(totalGrupos, (_) => _grupoCabecalho())),
-            ...List.generate(totalLinhas, (linha) => Row(children: List.generate(totalGrupos, (grupo) => _grupoLinha(linha, grupo)))),
-          ]),
-        )),
-        const SizedBox(height: 40),
-      ])),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(12.0), 
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start, 
+          children: [
+            buildBannerPermissao(),
+            const Center(child: Text('REGISTRO DE EVENTOS', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: corAzul))),
+            const SizedBox(height: 12),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal, 
+              child: Container(
+                decoration: BoxDecoration(border: Border.all(color: corBorda, width: 2), color: Colors.white),
+                child: Column(children: [
+                  Row(children: List.generate(totalGrupos, (_) => _grupoCabecalho())),
+                  ...List.generate(totalLinhas, (linha) => Row(children: List.generate(totalGrupos, (grupo) => _grupoLinha(linha, grupo)))),
+                ]),
+              ),
+            ),
+            const SizedBox(height: 40),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -751,6 +705,7 @@ class _EventosScreenState extends State<EventosScreen> {
 // ==========================================
 class S13Screen extends StatefulWidget {
   const S13Screen({super.key});
+  
   @override
   State<S13Screen> createState() => _S13ScreenState();
 }
@@ -759,9 +714,13 @@ class _S13ScreenState extends State<S13Screen> {
   late List<List<TextEditingController>> controllers;
   late TextEditingController _anoServicoController;
 
-  static const double wTerr = 55, wUltima = 115, wData = 130;
+  static const double wTerr = 55;
+  static const double wUltima = 115;
+  static const double wData = 130;
   static const double wBloco = wData * 2;
-  static const double hCabecalhoLinha = 36, hNome = 42, hData = 42;
+  static const double hCabecalhoLinha = 36;
+  static const double hNome = 42;
+  static const double hData = 42;
   static const Color corBorda = Colors.black;
 
   @override
@@ -782,7 +741,11 @@ class _S13ScreenState extends State<S13Screen> {
 
   @override
   void dispose() {
-    for (var row in controllers) { for (var c in row) { c.dispose(); } }
+    for (var row in controllers) { 
+      for (var c in row) { 
+        c.dispose(); 
+      } 
+    }
     _anoServicoController.dispose();
     super.dispose();
   }
@@ -792,28 +755,83 @@ class _S13ScreenState extends State<S13Screen> {
     for (int i = 0; i < 20; i++) {
       final id = i + 1;
       for (int b = 0; b < 4; b++) {
-        RegistroS13.atualizarBloco(id, b, nome: controllers[i][1 + b].text, dataDesignacao: controllers[i][5 + b].text, dataConclusao: controllers[i][9 + b].text);
+        RegistroS13.atualizarBloco(id, b, 
+          nome: controllers[i][1 + b].text, 
+          dataDesignacao: controllers[i][5 + b].text, 
+          dataConclusao: controllers[i][9 + b].text
+        );
       }
     }
     RegistroS13.anoServico = _anoServicoController.text;
   }
 
   Widget _containerBorda({required double width, required double height, Color cor = Colors.white, required Widget child}) {
-    return Container(width: width, height: height, decoration: BoxDecoration(color: cor, border: const Border(right: BorderSide(color: corBorda, width: 1), bottom: BorderSide(color: corBorda, width: 1))), child: child);
+    return Container(
+      width: width, 
+      height: height, 
+      decoration: BoxDecoration(
+        color: cor, 
+        border: const Border(
+          right: BorderSide(color: corBorda, width: 1), 
+          bottom: BorderSide(color: corBorda, width: 1)
+        )
+      ), 
+      child: child
+    );
   }
 
   Widget _celulaCabecalhoTexto({required double width, required double height, required String texto, Color cor = Colors.white, double fontSize = 11}) {
-    return _containerBorda(width: width, height: height, cor: cor, child: Center(child: Padding(padding: const EdgeInsets.all(2), child: Text(texto, textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize)))));
+    return _containerBorda(
+      width: width, 
+      height: height, 
+      cor: cor, 
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(2), 
+          child: Text(
+            texto, 
+            textAlign: TextAlign.center, 
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize)
+          )
+        )
+      )
+    );
   }
 
   Widget _celulaComCampo({required double width, required double height, required TextEditingController ctrl, double fontSize = 11}) {
-    return _containerBorda(width: width, height: height, child: Center(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 2), child: campoEditavel(controller: ctrl, fontSize: fontSize, contentPadding: const EdgeInsets.symmetric(vertical: 6), onChanged: () => SalvamentoManager.marcarAlteracao()))));
+    return _containerBorda(
+      width: width, 
+      height: height, 
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2), 
+          child: campoEditavel(
+            controller: ctrl, 
+            fontSize: fontSize, 
+            contentPadding: const EdgeInsets.symmetric(vertical: 6), 
+            onChanged: () => SalvamentoManager.marcarAlteracao()
+          )
+        )
+      )
+    );
   }
 
-  Widget _celulaNumero(String numero) => _containerBorda(width: wTerr, height: hNome + hData, child: Center(child: Text(numero, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))));
+  Widget _celulaNumero(String numero) => _containerBorda(
+    width: wTerr, 
+    height: hNome + hData, 
+    child: Center(
+      child: Text(numero, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))
+    )
+  );
 
   Widget _cabecalhoBloco() => Column(children: [
-    _celulaCabecalhoTexto(width: wBloco, height: hCabecalhoLinha, texto: 'Designado para', cor: Colors.grey, fontSize: 11),
+    _celulaCabecalhoTexto(
+      width: wBloco, 
+      height: hCabecalhoLinha, 
+      texto: 'Designado para', 
+      cor: Colors.grey, 
+      fontSize: 11
+    ),
     Row(children: [
       _celulaCabecalhoTexto(width: wData, height: hCabecalhoLinha, texto: 'Data da designação', fontSize: 10),
       _celulaCabecalhoTexto(width: wData, height: hCabecalhoLinha, texto: 'Data da conclusão', fontSize: 10),
@@ -821,10 +839,25 @@ class _S13ScreenState extends State<S13Screen> {
   ]);
 
   Widget _linhaBloco(int rowIndex, int blocoIndex) => Column(children: [
-    _celulaComCampo(width: wBloco, height: hNome, ctrl: controllers[rowIndex][1 + blocoIndex], fontSize: 13),
+    _celulaComCampo(
+      width: wBloco, 
+      height: hNome, 
+      ctrl: controllers[rowIndex][1 + blocoIndex], 
+      fontSize: 13
+    ),
     Row(children: [
-      _celulaComCampo(width: wData, height: hData, ctrl: controllers[rowIndex][5 + blocoIndex], fontSize: 11),
-      _celulaComCampo(width: wData, height: hData, ctrl: controllers[rowIndex][9 + blocoIndex], fontSize: 11),
+      _celulaComCampo(
+        width: wData, 
+        height: hData, 
+        ctrl: controllers[rowIndex][5 + blocoIndex], 
+        fontSize: 11
+      ),
+      _celulaComCampo(
+        width: wData, 
+        height: hData, 
+        ctrl: controllers[rowIndex][9 + blocoIndex], 
+        fontSize: 11
+      ),
     ]),
   ]);
 
@@ -833,42 +866,103 @@ class _S13ScreenState extends State<S13Screen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('S.13', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, letterSpacing: 1.2)),
-        backgroundColor: const Color(0xFF1A365D), iconTheme: const IconThemeData(color: Colors.white), centerTitle: true,
+        backgroundColor: const Color(0xFF1A365D), 
+        iconTheme: const IconThemeData(color: Colors.white), 
+        centerTitle: true,
         actions: [
-          IconButton(icon: const Icon(Icons.print, color: Colors.white, size: 26), tooltip: 'Imprimir', onPressed: () => imprimirS13(context)),
-          IconButton(icon: const Icon(Icons.save, color: Colors.white, size: 26), onPressed: AuthManager.podeEditarTudo ? () async { _salvarCamposS13(); await SalvamentoManager.salvarTudo(context); } : null),
+          IconButton(
+            icon: const Icon(Icons.print, color: Colors.white, size: 26), 
+            tooltip: 'Imprimir', 
+            onPressed: () => imprimirS13(context)
+          ),
+          IconButton(
+            icon: const Icon(Icons.save, color: Colors.white, size: 26), 
+            onPressed: AuthManager.podeEditarTudo ? () async { 
+              _salvarCamposS13(); 
+              await SalvamentoManager.salvarTudo(context); 
+            } : null
+          ),
         ],
       ),
-      body: SingleChildScrollView(padding: const EdgeInsets.all(12.0), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        buildBannerPermissao(),
-        const Center(child: Text('REGISTRO DE DESIGNAÇÃO DE TERRITÓRIO', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF1A365D)), textAlign: TextAlign.center)),
-        const SizedBox(height: 12),
-        Row(children: [
-          const Text('Ano de Serviço: ', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF1A365D))),
-          Expanded(child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFF1A365D), width: 2)),
-            child: campoEditavel(controller: _anoServicoController, fontSize: 15, contentPadding: const EdgeInsets.symmetric(vertical: 6), hintText: 'Ex: 2026', onChanged: () => SalvamentoManager.marcarAlteracao()),
-          )),
-        ]),
-        const SizedBox(height: 12),
-        SingleChildScrollView(scrollDirection: Axis.horizontal, child: Container(
-          decoration: BoxDecoration(border: Border.all(color: corBorda, width: 2), color: Colors.white),
-          child: Column(children: [
-            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _celulaCabecalhoTexto(width: wTerr, height: hCabecalhoLinha * 2, texto: 'Terr.\nn.º'),
-              _celulaCabecalhoTexto(width: wUltima, height: hCabecalhoLinha * 2, texto: 'Última data\nconcluída*'),
-              _cabecalhoBloco(), _cabecalhoBloco(), _cabecalhoBloco(), _cabecalhoBloco(),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(12.0), 
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start, 
+          children: [
+            buildBannerPermissao(),
+            const Center(
+              child: Text(
+                'REGISTRO DE DESIGNAÇÃO DE TERRITÓRIO', 
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF1A365D)), 
+                textAlign: TextAlign.center
+              )
+            ),
+            const SizedBox(height: 12),
+            Row(children: [
+              const Text('Ano de Serviço: ', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF1A365D))),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.white, 
+                    borderRadius: BorderRadius.circular(8), 
+                    border: Border.all(color: const Color(0xFF1A365D), width: 2)
+                  ),
+                  child: campoEditavel(
+                    controller: _anoServicoController, 
+                    fontSize: 15, 
+                    contentPadding: const EdgeInsets.symmetric(vertical: 6), 
+                    hintText: 'Ex: 2026', 
+                    onChanged: () => SalvamentoManager.marcarAlteracao()
+                  ),
+                )
+              ),
             ]),
-            ...List.generate(20, (rowIndex) => Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _celulaNumero((rowIndex + 1).toString().padLeft(2, '0')),
-              _celulaComCampo(width: wUltima, height: hNome + hData, ctrl: controllers[rowIndex][0]),
-              _linhaBloco(rowIndex, 0), _linhaBloco(rowIndex, 1), _linhaBloco(rowIndex, 2), _linhaBloco(rowIndex, 3),
-            ])),
-          ]),
-        )),
-        const SizedBox(height: 40),
-      ])),
+            const SizedBox(height: 12),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal, 
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: corBorda, width: 2), 
+                  color: Colors.white
+                ),
+                child: Column(children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start, 
+                    children: [
+                      _celulaCabecalhoTexto(width: wTerr, height: hCabecalhoLinha * 2, texto: 'Terr.\nn.º'),
+                      _celulaCabecalhoTexto(width: wUltima, height: hCabecalhoLinha * 2, texto: 'Última data\nconcluída*'),
+                      _cabecalhoBloco(), 
+                      _cabecalhoBloco(), 
+                      _cabecalhoBloco(), 
+                      _cabecalhoBloco(),
+                    ]
+                  ),
+                  ...List.generate(20, (rowIndex) => Row(
+                    crossAxisAlignment: CrossAxisAlignment.start, 
+                    children: [
+                      _celulaNumero((rowIndex + 1).toString().padLeft(2, '0')),
+                      _celulaComCampo(width: wUltima, height: hNome + hData, ctrl: controllers[rowIndex][0]),
+                      _linhaBloco(rowIndex, 0), 
+                      _linhaBloco(rowIndex, 1), 
+                      _linhaBloco(rowIndex, 2), 
+                      _linhaBloco(rowIndex, 3),
+                    ]
+                  )),
+                ]),
+              )
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              '*Ao iniciar uma nova folha, use esta coluna para registrar a data em que cada território foi concluído pela última vez.', 
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black87)
+            ),
+            const SizedBox(height: 4),
+            const Text('S-13-T 01/22', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black87)),
+            const SizedBox(height: 40),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -878,12 +972,15 @@ class _S13ScreenState extends State<S13Screen> {
 // ==========================================
 class DirigentesScreen extends StatefulWidget {
   const DirigentesScreen({super.key});
+  
   @override
   State<DirigentesScreen> createState() => _DirigentesScreenState();
 }
 
 class _DirigentesScreenState extends State<DirigentesScreen> {
-  late List<TextEditingController> col1Controllers, col2Controllers, col3Controllers;
+  late List<TextEditingController> col1Controllers;
+  late List<TextEditingController> col2Controllers;
+  late List<TextEditingController> col3Controllers;
 
   @override
   void initState() {
@@ -907,36 +1004,106 @@ class _DirigentesScreenState extends State<DirigentesScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('DIRIGENTE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, letterSpacing: 1.2)),
-        backgroundColor: const Color(0xFF1A365D), iconTheme: const IconThemeData(color: Colors.white), centerTitle: true,
+        backgroundColor: const Color(0xFF1A365D), 
+        iconTheme: const IconThemeData(color: Colors.white), 
+        centerTitle: true,
         actions: [buildBotaoSalvar(context)],
       ),
-      body: SingleChildScrollView(padding: const EdgeInsets.all(16.0), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        buildBannerPermissao(),
-        const Text('Rodízio de Dirigentes', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1A365D))),
-        const SizedBox(height: 4),
-        Text(editavel ? '✅ Esta grade é editável por administradores.' : '🔒 Apenas administradores (1 e 2) podem editar esta grade.',
-          style: TextStyle(fontSize: 13, color: editavel ? Colors.green : Colors.red[700], fontWeight: FontWeight.bold)),
-        const SizedBox(height: 12),
-        SingleChildScrollView(scrollDirection: Axis.horizontal, child: Container(
-          decoration: BoxDecoration(border: Border.all(color: const Color(0xFF1A365D), width: 4), borderRadius: BorderRadius.circular(8), boxShadow: altoRelevo),
-          child: Table(
-            border: TableBorder.all(color: Colors.black, width: 1.5),
-            columnWidths: const {0: FixedColumnWidth(200), 1: FixedColumnWidth(170), 2: FixedColumnWidth(170)},
-            children: [
-              TableRow(decoration: const BoxDecoration(color: Color(0xFF1A365D)), children: ['SEGUNDA A SEXTA', 'SÁBADO', 'DOMINGO'].map((h) => Padding(padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6), child: Text(h, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)))).toList()),
-              ...List.generate(20, (i) => TableRow(
-                decoration: BoxDecoration(color: i % 2 == 0 ? Colors.grey[200] : Colors.grey[300]),
-                children: [
-                  Padding(padding: const EdgeInsets.symmetric(horizontal: 4.0), child: campoEditavel(controller: col1Controllers[i], textAlign: TextAlign.left, fontSize: 16, onChanged: () { DadosCompartilhados.segundaSexta[i] = col1Controllers[i].text; SalvamentoManager.marcarAlteracao(); })),
-                  Padding(padding: const EdgeInsets.symmetric(horizontal: 4.0), child: campoEditavel(controller: col2Controllers[i], textAlign: TextAlign.left, fontSize: 16, onChanged: () { DadosCompartilhados.sabado[i] = col2Controllers[i].text; SalvamentoManager.marcarAlteracao(); })),
-                  Padding(padding: const EdgeInsets.symmetric(horizontal: 4.0), child: campoEditavel(controller: col3Controllers[i], textAlign: TextAlign.left, fontSize: 16, onChanged: () { DadosCompartilhados.domingo[i] = col3Controllers[i].text; SalvamentoManager.marcarAlteracao(); })),
-                ],
-              )),
-            ],
-          ),
-        )),
-        const SizedBox(height: 40),
-      ])),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0), 
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start, 
+          children: [
+            buildBannerPermissao(),
+            const Text('Rodízio de Dirigentes', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1A365D))),
+            const SizedBox(height: 4),
+            Text(
+              editavel 
+                ? '✅ Esta grade é editável por administradores.' 
+                : '🔒 Apenas administradores (1 e 2) podem editar esta grade.',
+              style: TextStyle(
+                fontSize: 13, 
+                color: editavel ? Colors.green : Colors.red[700], 
+                fontWeight: FontWeight.bold
+              )
+            ),
+            const SizedBox(height: 12),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal, 
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: const Color(0xFF1A365D), width: 4), 
+                  borderRadius: BorderRadius.circular(8), 
+                  boxShadow: altoRelevo
+                ),
+                child: Table(
+                  border: TableBorder.all(color: Colors.black, width: 1.5),
+                  columnWidths: const {
+                    0: FixedColumnWidth(200), 
+                    1: FixedColumnWidth(170), 
+                    2: FixedColumnWidth(170)
+                  },
+                  children: [
+                    TableRow(
+                      decoration: const BoxDecoration(color: Color(0xFF1A365D)), 
+                      children: ['SEGUNDA A SEXTA', 'SÁBADO', 'DOMINGO'].map((h) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6), 
+                        child: Text(
+                          h, 
+                          textAlign: TextAlign.center, 
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)
+                        )
+                      )).toList()
+                    ),
+                    ...List.generate(20, (i) => TableRow(
+                      decoration: BoxDecoration(color: i % 2 == 0 ? Colors.grey[200] : Colors.grey[300]),
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4.0), 
+                          child: campoEditavel(
+                            controller: col1Controllers[i], 
+                            textAlign: TextAlign.left, 
+                            fontSize: 16, 
+                            onChanged: () { 
+                              DadosCompartilhados.segundaSexta[i] = col1Controllers[i].text; 
+                              SalvamentoManager.marcarAlteracao(); 
+                            }
+                          )
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4.0), 
+                          child: campoEditavel(
+                            controller: col2Controllers[i], 
+                            textAlign: TextAlign.left, 
+                            fontSize: 16, 
+                            onChanged: () { 
+                              DadosCompartilhados.sabado[i] = col2Controllers[i].text; 
+                              SalvamentoManager.marcarAlteracao(); 
+                            }
+                          )
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4.0), 
+                          child: campoEditavel(
+                            controller: col3Controllers[i], 
+                            textAlign: TextAlign.left, 
+                            fontSize: 16, 
+                            onChanged: () { 
+                              DadosCompartilhados.domingo[i] = col3Controllers[i].text; 
+                              SalvamentoManager.marcarAlteracao(); 
+                            }
+                          )
+                        ),
+                      ]
+                    )),
+                  ],
+                ),
+              )
+            ),
+            const SizedBox(height: 40),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -946,21 +1113,27 @@ class _DirigentesScreenState extends State<DirigentesScreen> {
 // ==========================================
 class ServicoCampoScreen extends StatefulWidget {
   const ServicoCampoScreen({super.key});
+  
   @override
   State<ServicoCampoScreen> createState() => _ServicoCampoScreenState();
 }
 
 class _ServicoCampoScreenState extends State<ServicoCampoScreen> {
-  late int anoAtual, mesAtual;
+  late int anoAtual;
+  late int mesAtual;
   late DateTime dataReferencia;
-  List<TextEditingController> locaisController = [], dirigentesController = [];
-  List<String> dias = [], diasSemana = [], horarios = [];
+  List<TextEditingController> locaisController = [];
+  List<TextEditingController> dirigentesController = [];
+  List<String> dias = [];
+  List<String> diasSemana = [];
+  List<String> horarios = [];
 
   @override
   void initState() {
     super.initState();
     final hoje = DateTime.now();
-    anoAtual = hoje.year; mesAtual = hoje.month;
+    anoAtual = hoje.year; 
+    mesAtual = hoje.month;
     dataReferencia = DateTime(anoAtual, mesAtual, 1);
     _gerarDados();
   }
@@ -978,25 +1151,36 @@ class _ServicoCampoScreenState extends State<ServicoCampoScreen> {
       if (mesAtual > 12) { mesAtual = 1; anoAtual++; }
       if (mesAtual < 1) { mesAtual = 12; anoAtual--; }
       dataReferencia = DateTime(anoAtual, mesAtual, 1);
-      _limparDados(); _gerarDados();
+      _limparDados(); 
+      _gerarDados();
     });
   }
 
   void _limparDados() {
     for (var c in locaisController) { c.dispose(); }
     for (var c in dirigentesController) { c.dispose(); }
-    locaisController.clear(); dirigentesController.clear();
-    dias.clear(); diasSemana.clear(); horarios.clear();
+    locaisController.clear(); 
+    dirigentesController.clear();
+    dias.clear(); 
+    diasSemana.clear(); 
+    horarios.clear();
   }
 
   String _designarDirigente(int diaSemanaNum, int contSeg, int contSab, int contDom, int contDomAlt) {
-    if (diaSemanaNum >= 1 && diaSemanaNum <= 5) return DadosCompartilhados.segundaSexta[contSeg % DadosCompartilhados.segundaSexta.length];
-    if (diaSemanaNum == 6) return DadosCompartilhados.sabado[contSab % DadosCompartilhados.sabado.length];
-    return contDomAlt % 2 == 0 ? DadosCompartilhados.sabado[contSab % DadosCompartilhados.sabado.length] : DadosCompartilhados.domingo[contDom % DadosCompartilhados.domingo.length];
+    if (diaSemanaNum >= 1 && diaSemanaNum <= 5) {
+      return DadosCompartilhados.segundaSexta[contSeg % DadosCompartilhados.segundaSexta.length];
+    }
+    if (diaSemanaNum == 6) {
+      return DadosCompartilhados.sabado[contSab % DadosCompartilhados.sabado.length];
+    }
+    return contDomAlt % 2 == 0 
+      ? DadosCompartilhados.sabado[contSab % DadosCompartilhados.sabado.length] 
+      : DadosCompartilhados.domingo[contDom % DadosCompartilhados.domingo.length];
   }
 
   void _gerarDados() {
-    final int ano = dataReferencia.year, mes = dataReferencia.month;
+    final int ano = dataReferencia.year;
+    final int mes = dataReferencia.month;
     final int ultimoDia = DateTime(ano, mes + 1, 0).day;
     final List<String> nomesDiasSemana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
     final DateTime limite = DateTime(2026, 12, 31);
@@ -1006,9 +1190,23 @@ class _ServicoCampoScreenState extends State<ServicoCampoScreen> {
       final DateTime data = DateTime(ano, mes, dia);
       final int diaSemanaNum = data.weekday;
       String horario = '08:30';
-      if (data.isBefore(limite) || data.isAtSameMomentAs(limite)) { if (diaSemanaNum == DateTime.thursday) { horario = '17:30'; } } else { if (diaSemanaNum == DateTime.wednesday) { horario = '17:30'; } }
+      
+      if (data.isBefore(limite) || data.isAtSameMomentAs(limite)) { 
+        if (diaSemanaNum == DateTime.thursday) { horario = '17:30'; } 
+      } else { 
+        if (diaSemanaNum == DateTime.wednesday) { horario = '17:30'; } 
+      }
+      
       final String dirigenteAuto = _designarDirigente(diaSemanaNum, contSeg, contSab, contDom, contDomAlt);
-      if (diaSemanaNum >= 1 && diaSemanaNum <= 5) { contSeg++; } else if (diaSemanaNum == 6) { contSab++; } else { if (contDomAlt % 2 == 0) { contSab++; } else { contDom++; } contDomAlt++; }
+      
+      if (diaSemanaNum >= 1 && diaSemanaNum <= 5) { contSeg++; } 
+      else if (diaSemanaNum == 6) { contSab++; } 
+      else { 
+        if (contDomAlt % 2 == 0) { contSab++; } 
+        else { contDom++; } 
+        contDomAlt++; 
+      }
+      
       dias.add(dia.toString().padLeft(2, '0'));
       diasSemana.add(nomesDiasSemana[diaSemanaNum % 7]);
       horarios.add(horario);
@@ -1023,46 +1221,141 @@ class _ServicoCampoScreenState extends State<ServicoCampoScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('SERVIÇO DE CAMPO', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, letterSpacing: 1.2)),
-        backgroundColor: const Color(0xFF1A365D), iconTheme: const IconThemeData(color: Colors.white), centerTitle: true,
+        backgroundColor: const Color(0xFF1A365D), 
+        iconTheme: const IconThemeData(color: Colors.white), 
+        centerTitle: true,
         actions: [buildBotaoSalvar(context)],
       ),
-      body: SingleChildScrollView(padding: const EdgeInsets.all(16.0), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        buildBannerPermissao(),
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-          decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF1A365D), width: 3), boxShadow: altoRelevo),
-          child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            IconButton(onPressed: () => _mudarMes(-1), icon: const Icon(Icons.chevron_left, color: Color(0xFF1A365D), size: 32)),
-            Column(children: [
-              Text('${nomesMeses[mesAtual - 1]} $anoAtual', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1A365D))),
-              const Text('Designação automática', style: TextStyle(fontSize: 11, color: Color(0xFF1A365D), fontWeight: FontWeight.w600)),
-            ]),
-            IconButton(onPressed: () => _mudarMes(1), icon: const Icon(Icons.chevron_right, color: Color(0xFF1A365D), size: 32)),
-          ]),
-        ),
-        const SizedBox(height: 16),
-        SingleChildScrollView(scrollDirection: Axis.horizontal, child: Container(
-          decoration: BoxDecoration(border: Border.all(color: const Color(0xFF1A365D), width: 4), borderRadius: BorderRadius.circular(8), boxShadow: altoRelevo),
-          child: Table(
-            border: TableBorder.all(color: Colors.black, width: 1.5),
-            columnWidths: const {0: FixedColumnWidth(60), 1: FixedColumnWidth(100), 2: FixedColumnWidth(200), 3: FixedColumnWidth(90), 4: FixedColumnWidth(200)},
-            children: [
-              TableRow(decoration: const BoxDecoration(color: Color(0xFF1A365D)), children: ['MÊS', 'SEMANA', 'LOCAL', 'HORÁRIO', 'DIRIGENTE'].map((h) => Padding(padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4), child: Text(h, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)))).toList()),
-              ...List.generate(dias.length, (i) => TableRow(
-                decoration: BoxDecoration(color: i % 2 == 0 ? Colors.grey[200] : Colors.grey[300]),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0), 
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start, 
+          children: [
+            buildBannerPermissao(),
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+              decoration: BoxDecoration(
+                color: Colors.grey[300], 
+                borderRadius: BorderRadius.circular(12), 
+                border: Border.all(color: const Color(0xFF1A365D), width: 3), 
+                boxShadow: altoRelevo
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween, 
                 children: [
-                  Padding(padding: const EdgeInsets.all(8.0), child: Text(dias[i], textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1A365D)))),
-                  Padding(padding: const EdgeInsets.all(8.0), child: Text(diasSemana[i], textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, color: Color(0xFF1A365D), fontWeight: FontWeight.bold))),
-                  Padding(padding: const EdgeInsets.symmetric(horizontal: 4.0), child: campoEditavel(controller: locaisController[i], textAlign: TextAlign.left, fontSize: 16, hintText: 'Digite o local...', onChanged: () => SalvamentoManager.marcarAlteracao())),
-                  Container(padding: const EdgeInsets.all(8.0), color: horarios[i] == '17:30' ? Colors.orange[300] : null, child: Text(horarios[i], textAlign: TextAlign.center, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: horarios[i] == '17:30' ? Colors.deepOrange[900] : const Color(0xFF1A365D)))),
-                  Padding(padding: const EdgeInsets.symmetric(horizontal: 4.0), child: campoEditavel(controller: dirigentesController[i], textAlign: TextAlign.left, fontSize: 16, hintText: 'Digite o nome...', onChanged: () => SalvamentoManager.marcarAlteracao())),
-                ],
-              )),
-            ],
-          ),
-        )),
-        const SizedBox(height: 40),
-      ])),
+                  IconButton(
+                    onPressed: () => _mudarMes(-1), 
+                    icon: const Icon(Icons.chevron_left, color: Color(0xFF1A365D), size: 32)
+                  ),
+                  Column(children: [
+                    Text(
+                      '${nomesMeses[mesAtual - 1]} $anoAtual', 
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1A365D))
+                    ),
+                    const Text(
+                      'Designação automática', 
+                      style: TextStyle(fontSize: 11, color: Color(0xFF1A365D), fontWeight: FontWeight.w600)
+                    ),
+                  ]),
+                  IconButton(
+                    onPressed: () => _mudarMes(1), 
+                    icon: const Icon(Icons.chevron_right, color: Color(0xFF1A365D), size: 32)
+                  ),
+                ]
+              ),
+            ),
+            const SizedBox(height: 16),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal, 
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: const Color(0xFF1A365D), width: 4), 
+                  borderRadius: BorderRadius.circular(8), 
+                  boxShadow: altoRelevo
+                ),
+                child: Table(
+                  border: TableBorder.all(color: Colors.black, width: 1.5),
+                  columnWidths: const {
+                    0: FixedColumnWidth(60), 
+                    1: FixedColumnWidth(100), 
+                    2: FixedColumnWidth(200), 
+                    3: FixedColumnWidth(90), 
+                    4: FixedColumnWidth(200)
+                  },
+                  children: [
+                    TableRow(
+                      decoration: const BoxDecoration(color: Color(0xFF1A365D)), 
+                      children: ['MÊS', 'SEMANA', 'LOCAL', 'HORÁRIO', 'DIRIGENTE'].map((h) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4), 
+                        child: Text(
+                          h, 
+                          textAlign: TextAlign.center, 
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)
+                        )
+                      )).toList()
+                    ),
+                    ...List.generate(dias.length, (i) => TableRow(
+                      decoration: BoxDecoration(color: i % 2 == 0 ? Colors.grey[200] : Colors.grey[300]),
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(8.0), 
+                          child: Text(
+                            dias[i], 
+                            textAlign: TextAlign.center, 
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1A365D))
+                          )
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0), 
+                          child: Text(
+                            diasSemana[i], 
+                            textAlign: TextAlign.center, 
+                            style: const TextStyle(fontSize: 14, color: Color(0xFF1A365D), fontWeight: FontWeight.bold)
+                          )
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4.0), 
+                          child: campoEditavel(
+                            controller: locaisController[i], 
+                            textAlign: TextAlign.left, 
+                            fontSize: 16, 
+                            hintText: 'Digite o local...', 
+                            onChanged: () => SalvamentoManager.marcarAlteracao()
+                          )
+                        ),
+                        Container(
+                          padding: const EdgeInsets.all(8.0), 
+                          color: horarios[i] == '17:30' ? Colors.orange[300] : null, 
+                          child: Text(
+                            horarios[i], 
+                            textAlign: TextAlign.center, 
+                            style: TextStyle(
+                              fontSize: 15, 
+                              fontWeight: FontWeight.bold, 
+                              color: horarios[i] == '17:30' ? Colors.deepOrange[900] : const Color(0xFF1A365D)
+                            )
+                          )
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4.0), 
+                          child: campoEditavel(
+                            controller: dirigentesController[i], 
+                            textAlign: TextAlign.left, 
+                            fontSize: 16, 
+                            hintText: 'Digite o nome...', 
+                            onChanged: () => SalvamentoManager.marcarAlteracao()
+                          )
+                        ),
+                      ]
+                    )),
+                  ],
+                ),
+              )
+            ),
+            const SizedBox(height: 40),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1072,6 +1365,7 @@ class _ServicoCampoScreenState extends State<ServicoCampoScreen> {
 // ==========================================
 class TerritoriosScreen extends StatefulWidget {
   const TerritoriosScreen({super.key});
+  
   @override
   State<TerritoriosScreen> createState() => _TerritoriosScreenState();
 }
@@ -1083,49 +1377,102 @@ class _TerritoriosScreenState extends State<TerritoriosScreen> {
   void initState() {
     super.initState();
     RegistroS13.inicializar();
-    for (int i = 1; i <= 14; i++) { territorios.add(Territorio(id: i, nome: 'Território $i')); }
+    for (int i = 1; i <= 14; i++) { 
+      territorios.add(Territorio(id: i, nome: 'Território $i')); 
+    }
   }
 
   void _adicionarTerritorio() {
     if (!AuthManager.podeEditarTudo) return;
     final TextEditingController controller = TextEditingController();
-    showDialog(context: context, builder: (context) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: const Text('Novo Território', style: TextStyle(color: Color(0xFF1A365D), fontWeight: FontWeight.bold, fontSize: 20)),
-      content: TextField(controller: controller, autofocus: true, decoration: InputDecoration(hintText: 'Digite o nome...', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)))),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.grey[300], side: const BorderSide(color: Color(0xFF1A365D), width: 4), foregroundColor: const Color(0xFF1A365D)),
-          onPressed: () { setState(() { int novoId = territorios.length + 1; String nome = controller.text.trim().isEmpty ? 'Território $novoId' : controller.text.trim(); territorios.add(Territorio(id: novoId, nome: nome)); SalvamentoManager.marcarAlteracao(); }); Navigator.pop(context); },
-          child: const Text('Adicionar', style: TextStyle(fontWeight: FontWeight.bold)),
+    showDialog(
+      context: context, 
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Novo Território', style: TextStyle(color: Color(0xFF1A365D), fontWeight: FontWeight.bold, fontSize: 20)),
+        content: TextField(
+          controller: controller, 
+          autofocus: true, 
+          decoration: InputDecoration(
+            hintText: 'Digite o nome...', 
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))
+          )
         ),
-      ],
-    ));
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context), 
+            child: const Text('Cancelar', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.grey[300], 
+              side: const BorderSide(color: Color(0xFF1A365D), width: 4), 
+              foregroundColor: const Color(0xFF1A365D)
+            ),
+            onPressed: () { 
+              setState(() { 
+                int novoId = territorios.length + 1; 
+                String nome = controller.text.trim().isEmpty ? 'Território $novoId' : controller.text.trim(); 
+                territorios.add(Territorio(id: novoId, nome: nome)); 
+                SalvamentoManager.marcarAlteracao(); 
+              }); 
+              Navigator.pop(context); 
+            },
+            child: const Text('Adicionar', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      )
+    );
   }
 
   void _editarNomeTerritorio(int index) {
     if (!AuthManager.podeEditarTudo) return;
     final territorio = territorios[index];
     final TextEditingController controller = TextEditingController(text: territorio.nome);
-    showDialog(context: context, builder: (context) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: Text('Editar Território ${territorio.id}', style: const TextStyle(color: Color(0xFF1A365D), fontWeight: FontWeight.bold, fontSize: 20)),
-      content: TextField(controller: controller, autofocus: true, decoration: InputDecoration(hintText: 'Digite o novo nome...', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)))),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.grey[300], side: const BorderSide(color: Color(0xFF1A365D), width: 4), foregroundColor: const Color(0xFF1A365D)),
-          onPressed: () { setState(() { territorio.nome = controller.text.trim().isEmpty ? 'Sem nome' : controller.text.trim(); SalvamentoManager.marcarAlteracao(); }); Navigator.pop(context); },
-          child: const Text('Salvar', style: TextStyle(fontWeight: FontWeight.bold)),
+    showDialog(
+      context: context, 
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Editar Território ${territorio.id}', style: const TextStyle(color: Color(0xFF1A365D), fontWeight: FontWeight.bold, fontSize: 20)),
+        content: TextField(
+          controller: controller, 
+          autofocus: true, 
+          decoration: InputDecoration(
+            hintText: 'Digite o novo nome...', 
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))
+          )
         ),
-      ],
-    ));
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context), 
+            child: const Text('Cancelar', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.grey[300], 
+              side: const BorderSide(color: Color(0xFF1A365D), width: 4), 
+              foregroundColor: const Color(0xFF1A365D)
+            ),
+            onPressed: () { 
+              setState(() { 
+                territorio.nome = controller.text.trim().isEmpty ? 'Sem nome' : controller.text.trim(); 
+                SalvamentoManager.marcarAlteracao(); 
+              }); 
+              Navigator.pop(context); 
+            },
+            child: const Text('Salvar', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      )
+    );
   }
 
   void _alternarSelecao(int index) {
     if (!AuthManager.podeEditarTudo) return;
-    setState(() { territorios[index].isSelecionado = !territorios[index].isSelecionado; SalvamentoManager.marcarAlteracao(); });
+    setState(() { 
+      territorios[index].isSelecionado = !territorios[index].isSelecionado; 
+      SalvamentoManager.marcarAlteracao(); 
+    });
   }
 
   @override
@@ -1134,292 +1481,55 @@ class _TerritoriosScreenState extends State<TerritoriosScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('TERRITÓRIOS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, letterSpacing: 1.2)),
-        backgroundColor: const Color(0xFF1A365D), iconTheme: const IconThemeData(color: Colors.white), centerTitle: true,
+        backgroundColor: const Color(0xFF1A365D), 
+        iconTheme: const IconThemeData(color: Colors.white), 
+        centerTitle: true,
         actions: [buildBotaoSalvar(context)],
       ),
       floatingActionButton: editavel ? FloatingActionButton(
-        onPressed: _adicionarTerritorio, backgroundColor: Colors.grey[300],
+        onPressed: _adicionarTerritorio, 
+        backgroundColor: Colors.grey[300],
         shape: const CircleBorder(side: BorderSide(color: Color(0xFF1A365D), width: 4)),
         child: const Icon(Icons.add, color: Color(0xFF1A365D), size: 36),
       ) : null,
       body: Column(children: [
-        Padding(padding: const EdgeInsets.fromLTRB(16, 16, 16, 0), child: buildBannerPermissao()),
-        Expanded(child: ListView.builder(
-          padding: const EdgeInsets.all(16), itemCount: territorios.length,
-          itemBuilder: (context, index) {
-            final territorio = territorios[index];
-            final bool isSelecionado = territorio.isSelecionado;
-            return Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(12), border: Border.all(color: isSelecionado ? Colors.green : const Color(0xFF1A365D), width: 4), boxShadow: altoRelevo),
-              child: Material(color: Colors.transparent, child: InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: () async { await Navigator.push(context, MaterialPageRoute(builder: (context) => TerritorioDetailScreen(territorio: territorio))); setState(() {}); },
-                child: Padding(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), child: Row(children: [
-                  CircleAvatar(radius: 22, backgroundColor: isSelecionado ? Colors.green : Colors.white, child: Text('${territorio.id}', style: TextStyle(color: isSelecionado ? Colors.white : const Color(0xFF1A365D), fontWeight: FontWeight.bold, fontSize: 18))),
-                  const SizedBox(width: 16),
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(territorio.nome, style: const TextStyle(color: Color(0xFF1A365D), fontWeight: FontWeight.bold, fontSize: 20), maxLines: 1, overflow: TextOverflow.ellipsis),
-                    Text(isSelecionado ? 'Território em uso' : 'Disponível', style: TextStyle(color: isSelecionado ? Colors.green[800] : const Color(0xFF1A365D), fontSize: 15, fontWeight: FontWeight.bold)),
-                  ])),
-                  IconButton(icon: Icon(Icons.edit_outlined, size: 28, color: editavel ? const Color(0xFF1A365D) : Colors.grey), onPressed: editavel ? () => _editarNomeTerritorio(index) : null),
-                  Checkbox(value: isSelecionado, activeColor: Colors.green, side: const BorderSide(color: Color(0xFF1A365D), width: 3), onChanged: editavel ? (bool? value) => _alternarSelecao(index) : null),
-                ])),
-              )),
-            );
-          },
-        )),
-      ]),
-    );
-  }
-}
-
-// ==========================================
-// TELA DE DETALHES DO TERRITÓRIO
-// ==========================================
-class TerritorioDetailScreen extends StatefulWidget {
-  final Territorio territorio;
-  const TerritorioDetailScreen({super.key, required this.territorio});
-  @override
-  State<TerritorioDetailScreen> createState() => _TerritorioDetailScreenState();
-}
-
-class _TerritorioDetailScreenState extends State<TerritorioDetailScreen> {
-  List<List<int>> quadrasState = List.generate(10, (_) => List.generate(14, (_) => 0));
-  late List<List<TextEditingController>> dirigenteControllers;
-
-  @override
-  void initState() {
-    super.initState();
-    dirigenteControllers = List.generate(10, (_) => List.generate(8, (_) => TextEditingController()));
-    final blocos = RegistroS13.registros[widget.territorio.id] ?? [];
-    for (int i = 0; i < blocos.length && i < 4; i++) {
-      dirigenteControllers[i][0].text = blocos[i].nomeIrmao;
-      dirigenteControllers[i][6].text = blocos[i].dataDesignacao;
-      dirigenteControllers[i][7].text = blocos[i].dataConclusao;
-    }
-  }
-
-  @override
-  void dispose() {
-    for (var row in dirigenteControllers) { for (var c in row) { c.dispose(); } }
-    super.dispose();
-  }
-
-  void _selecionarImagem() {
-    if (!AuthManager.podeEditarTudo) return;
-    setState(() { widget.territorio.imagemUrl = 'https://picsum.photos/seed/${widget.territorio.id}/600/400'; });
-    SalvamentoManager.marcarAlteracao();
-  }
-
-  void _sincronizarLinha(int rowIndex) {
-    if (rowIndex >= 4) return;
-    RegistroS13.atualizarBloco(widget.territorio.id, rowIndex, nome: dirigenteControllers[rowIndex][0].text, dataDesignacao: dirigenteControllers[rowIndex][6].text, dataConclusao: dirigenteControllers[rowIndex][7].text);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.territorio.nome.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Colors.white)),
-        backgroundColor: const Color(0xFF1A365D), iconTheme: const IconThemeData(color: Colors.white), centerTitle: true,
-        actions: [buildBotaoSalvar(context)],
-      ),
-      body: SingleChildScrollView(padding: const EdgeInsets.all(16.0), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        buildBannerPermissao(),
-        const Text('Mapa do Território', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1A365D))),
-        const SizedBox(height: 8),
-        GestureDetector(
-          onTap: _selecionarImagem,
-          child: Container(
-            width: double.infinity, height: 220,
-            decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFF1A365D), width: 4), boxShadow: altoRelevo, image: widget.territorio.imagemUrl != null ? DecorationImage(image: NetworkImage(widget.territorio.imagemUrl!), fit: BoxFit.cover) : null),
-            child: widget.territorio.imagemUrl == null ? const Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.add_photo_alternate_outlined, size: 60, color: Color(0xFF1A365D)), SizedBox(height: 12), Text('Clique para adicionar a foto do mapa', style: TextStyle(color: Color(0xFF1A365D), fontSize: 18, fontWeight: FontWeight.bold))]) : null,
-          ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0), 
+          child: buildBannerPermissao()
         ),
-        const SizedBox(height: 24),
-        const Text('DIRIGENTE', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1A365D))),
-        const SizedBox(height: 8),
-        SingleChildScrollView(scrollDirection: Axis.horizontal, child: Container(
-          decoration: BoxDecoration(border: Border.all(color: const Color(0xFF1A365D), width: 4), borderRadius: BorderRadius.circular(8), boxShadow: altoRelevo),
-          child: Table(
-            border: TableBorder.all(color: Colors.black, width: 1.5), defaultColumnWidth: const FixedColumnWidth(120),
-            children: [
-              TableRow(decoration: const BoxDecoration(color: Color(0xFF1A365D)), children: ['DIRIGENTE', 'PUBLI', 'DATA', 'DIRIGENTE', 'PUBLI', 'DATA', 'DATA INICIAL', 'DATA FINAL'].map((h) => Padding(padding: const EdgeInsets.all(12.0), child: Text(h, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)))).toList()),
-              ...List.generate(10, (rowIndex) => TableRow(
-                decoration: BoxDecoration(color: rowIndex % 2 == 0 ? Colors.grey[200] : Colors.grey[300]),
-                children: List.generate(8, (colIndex) => Padding(padding: const EdgeInsets.symmetric(horizontal: 4.0), child: campoEditavel(controller: dirigenteControllers[rowIndex][colIndex], fontSize: 14, contentPadding: const EdgeInsets.all(12), editavelOverride: true, onChanged: () => _sincronizarLinha(rowIndex)))),
-              )),
-            ],
-          ),
-        )),
-        const SizedBox(height: 24),
-        const Text('QUADRAS TRABALHADAS', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1A365D))),
-        const SizedBox(height: 8),
-        SingleChildScrollView(scrollDirection: Axis.horizontal, child: Container(
-          decoration: BoxDecoration(border: Border.all(color: const Color(0xFF1A365D), width: 4), borderRadius: BorderRadius.circular(8), boxShadow: altoRelevo),
-          child: Table(
-            border: TableBorder.all(color: Colors.black, width: 1.5), defaultColumnWidth: const FixedColumnWidth(60),
-            children: [
-              TableRow(decoration: const BoxDecoration(color: Color(0xFF1A365D)), children: List.generate(14, (index) => (index + 1).toString().padLeft(2, '0')).map((h) => Padding(padding: const EdgeInsets.all(12.0), child: Text(h, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)))).toList()),
-              ...List.generate(10, (rowIndex) => TableRow(
-                decoration: BoxDecoration(color: rowIndex % 2 == 0 ? Colors.grey[200] : Colors.grey[300]),
-                children: List.generate(14, (colIndex) {
-                  int state = quadrasState[rowIndex][colIndex];
-                  Color cellColor = Colors.transparent;
-                  if (state == 1) cellColor = Colors.yellow[700]!;
-                  if (state == 2) cellColor = Colors.green[700]!;
-                  return GestureDetector(
-                    onTap: () { setState(() { quadrasState[rowIndex][colIndex] = (state + 1) % 3; SalvamentoManager.marcarAlteracao(); }); },
-                    child: Container(height: 55, color: cellColor, child: state == 2 ? const Icon(Icons.check, size: 28, color: Colors.white) : null),
-                  );
-                }),
-              )),
-            ],
-          ),
-        )),
-        const SizedBox(height: 40),
-      ])),
-    );
-  }
-}
-
-// ==========================================
-// CALENDÁRIO
-// ==========================================
-class CalendarStrip extends StatefulWidget {
-  const CalendarStrip({super.key});
-  @override
-  State<CalendarStrip> createState() => _CalendarStripState();
-}
-
-class _CalendarStripState extends State<CalendarStrip> {
-  final ScrollController _scrollController = ScrollController();
-  int _diaCentral = 1;
-  late int _anoExibido, _mesExibido;
-
-  static const double _cellWidth = 55.0, _cellMarginH = 3.0;
-  static const double _totalCellWidth = _cellWidth + (_cellMarginH * 2);
-  static const double _alturaTotal = 175, _alturaDia = 82, _alturaMarcador = 140, _margemVerticalDia = 10;
-
-  @override
-  void initState() {
-    super.initState();
-    final hoje = DateTime.now();
-    _anoExibido = hoje.year; _mesExibido = hoje.month; _diaCentral = hoje.day;
-    _scrollController.addListener(_atualizarDiaCentral);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _rolarParaHoje());
-  }
-
-  void _mudarMes(int delta) {
-    setState(() {
-      _mesExibido += delta;
-      if (_mesExibido > 12) { _mesExibido = 1; _anoExibido++; }
-      if (_mesExibido < 1) { _mesExibido = 12; _anoExibido--; }
-      final hoje = DateTime.now();
-      _diaCentral = (_mesExibido == hoje.month && _anoExibido == hoje.year) ? hoje.day : 1;
-    });
-    WidgetsBinding.instance.addPostFrameCallback((_) => _rolarParaHoje());
-  }
-
-  void _rolarParaHoje() {
-    if (!_scrollController.hasClients) return;
-    final offset = (_diaCentral - 1) * _totalCellWidth;
-    _scrollController.jumpTo(offset.clamp(0.0, _scrollController.position.maxScrollExtent));
-  }
-
-  void _atualizarDiaCentral() {
-    final offset = _scrollController.offset;
-    final novoDia = (offset / _totalCellWidth).round() + 1;
-    if (novoDia != _diaCentral && mounted) { setState(() => _diaCentral = novoDia); }
-  }
-
-  @override
-  void dispose() { _scrollController.removeListener(_atualizarDiaCentral); _scrollController.dispose(); super.dispose(); }
-
-  @override
-  Widget build(BuildContext context) {
-    final DateTime hoje = DateTime.now();
-    final int ultimoDia = DateTime(_anoExibido, _mesExibido + 1, 0).day;
-    const List<String> nomesMeses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-    const List<String> abreviacoesDias = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
-    final String hojeFormatado = '${hoje.day.toString().padLeft(2, '0')}/${hoje.month.toString().padLeft(2, '0')}';
-    final bool isMesAtual = _mesExibido == hoje.month && _anoExibido == hoje.year;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFF1A365D), width: 4), boxShadow: altoRelevo),
-      child: Column(children: [
-        Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          IconButton(onPressed: () => _mudarMes(-1), icon: const Icon(Icons.chevron_left, color: Color(0xFF1A365D), size: 28), padding: EdgeInsets.zero, constraints: const BoxConstraints()),
-          Expanded(child: Column(children: [
-            Text('${nomesMeses[_mesExibido - 1]} $_anoExibido', style: const TextStyle(color: Color(0xFF1A365D), fontSize: 16, fontWeight: FontWeight.bold), textAlign: TextAlign.center, overflow: TextOverflow.ellipsis),
-            const SizedBox(height: 2),
-            Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: const Color(0xFF1A365D), borderRadius: BorderRadius.circular(8)), child: Text('Hoje: $hojeFormatado', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))),
-          ])),
-          IconButton(onPressed: () => _mudarMes(1), icon: const Icon(Icons.chevron_right, color: Color(0xFF1A365D), size: 28), padding: EdgeInsets.zero, constraints: const BoxConstraints()),
-        ])),
-        const SizedBox(height: 10),
-        SizedBox(height: _alturaTotal, child: LayoutBuilder(builder: (context, constraints) {
-          final horizontalPadding = (constraints.maxWidth - _totalCellWidth) / 2;
-          final double topMarcador = (_alturaTotal - _alturaMarcador) / 2 + 3;
-          return Stack(alignment: Alignment.center, clipBehavior: Clip.none, children: [
-            Positioned(top: topMarcador, child: IgnorePointer(child: Container(
-              width: _totalCellWidth + 12, height: _alturaMarcador,
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.55), offset: const Offset(5, 5), blurRadius: 7), BoxShadow(color: Colors.white.withValues(alpha: 0.95), offset: const Offset(-4, -4), blurRadius: 7)]),
-            ))),
-            ListView.builder(
-              key: ValueKey('$_anoExibido-$_mesExibido'),
-              controller: _scrollController, scrollDirection: Axis.horizontal,
-              padding: EdgeInsets.symmetric(horizontal: horizontalPadding), itemCount: ultimoDia,
-              itemBuilder: (context, index) {
-                final dia = index + 1;
-                final data = DateTime(_anoExibido, _mesExibido, dia);
-                final isHoje = isMesAtual && dia == hoje.day;
-                final isCentro = dia == _diaCentral;
-                return Center(child: AnimatedScale(
-                  scale: isCentro ? 1.1 : 1.0, duration: const Duration(milliseconds: 180), curve: Curves.easeOutBack,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    width: _cellWidth, height: _alturaDia,
-                    margin: EdgeInsets.symmetric(horizontal: _cellMarginH, vertical: _margemVerticalDia),
-                    decoration: BoxDecoration(color: isHoje ? const Color(0xFF1A365D) : Colors.grey[200], borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0xFF1A365D), width: isCentro ? 3 : 2)),
-                    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      Text(abreviacoesDias[data.weekday % 7], style: TextStyle(color: isHoje ? Colors.white70 : const Color(0xFF1A365D), fontSize: 10, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 2),
-                      Text(dia.toString().padLeft(2, '0'), style: TextStyle(color: isHoje ? Colors.white : const Color(0xFF1A365D), fontSize: 20, fontWeight: FontWeight.bold)),
-                    ]),
-                  ),
-                ));
-              },
-            ),
-            Positioned(top: topMarcador, child: IgnorePointer(child: Container(
-              width: _totalCellWidth + 12, height: _alturaMarcador,
-              decoration: BoxDecoration(color: Colors.transparent, border: Border.all(color: Colors.deepOrange, width: 5), borderRadius: BorderRadius.circular(18)),
-            ))),
-          ]);
-        })),
-      ]),
-    );
-  }
-}
-
-// ==========================================
-// TELA PLACEHOLDER
-// ==========================================
-class PlaceholderScreen extends StatelessWidget {
-  final String title;
-  const PlaceholderScreen({super.key, required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title.toUpperCase()), backgroundColor: const Color(0xFF1A365D), iconTheme: const IconThemeData(color: Colors.white), centerTitle: true),
-      body: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        const Icon(Icons.construction, size: 100, color: Color(0xFF1A365D)),
-        const SizedBox(height: 16),
-        Text('Tela de $title', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Color(0xFF1A365D))),
-      ])),
-    );
-  }
-}
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16), 
+            itemCount: territorios.length,
+            itemBuilder: (context, index) {
+              final territorio = territorios[index];
+              final bool isSelecionado = territorio.isSelecionado;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300], 
+                  borderRadius: BorderRadius.circular(12), 
+                  border: Border.all(color: isSelecionado ? Colors.green : const Color(0xFF1A365D), width: 4), 
+                  boxShadow: altoRelevo
+                ),
+                child: Material(
+                  color: Colors.transparent, 
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () async { 
+                      await Navigator.push(
+                        context, 
+                        MaterialPageRoute(builder: (context) => TerritorioDetailScreen(territorio: territorio))
+                      ); 
+                      setState(() {}); 
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), 
+                      child: Row(children: [
+                        CircleAvatar(
+                          radius: 22, 
+                          backgroundColor: isSelecionado ? Colors.green : Colors.white, 
+                          child: Text(
+                            '${territorio.id}', 
+                            style: TextStyle(
+                              color: isSelecionado ? Colors.white : const Color(0xFF1A
