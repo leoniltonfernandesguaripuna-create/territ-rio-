@@ -1,5 +1,4 @@
-
-name: app_territorio
+name: territorio_app
 description: Aplicativo para gerenciar territórios de congregação.
 publish_to: 'none'
 version: 1.0.0+1
